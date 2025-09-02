@@ -1,0 +1,19 @@
+﻿<Application x:Class="FocusTrack.App"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="clr-namespace:FocusTrack"
+             xmlns:conv="clr-namespace:FocusTrack.Converters"
+             StartupUri="MainWindow.xaml">
+    <Application.Resources>
+        <ResourceDictionary>
+            <!-- Your converters -->
+            <conv:ByteToImageConverter x:Key="ByteToImageConverter"/>
+            <conv:ExeToIconConverter x:Key="ExeToIconConverter"/>
+
+            <!-- External resource dictionaries -->
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="Style/HeaderButtonStyle.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </Application.Resources>
+</Application>
