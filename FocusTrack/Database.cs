@@ -2,10 +2,11 @@
 using System;
 using System.Collections.Generic;
 using System.Data.SQLite;
-using System.IO;
-using System.Threading.Tasks;
 using System.Drawing;
 using System.Drawing.Imaging;
+using System.IO;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace FocusTrack
 {
@@ -125,6 +126,67 @@ namespace FocusTrack
 
             return result;
         }
+
+        public class HourlyUsage
+        {
+            public int Hour { get; set; }  // 0-23
+            public int TotalSeconds { get; set; }
+        }
+
+        public static async Task<List<HourlyUsage>> GetHourlyUsageAsync(DateTime start, DateTime end)
+        {
+            var result = new List<HourlyUsage>();
+
+            // Query DB
+            using (var conn = new System.Data.SQLite.SQLiteConnection(Database.ConnString))
+            {
+                await conn.OpenAsync();
+                using (var cmd = conn.CreateCommand())
+                {
+                    cmd.CommandText = @"
+                SELECT strftime('%H', StartTime) as Hour,
+                       SUM(DurationSeconds) as TotalDuration
+                FROM AppUsage
+                WHERE StartTime BETWEEN @start AND @end
+                GROUP BY Hour
+                ORDER BY Hour";
+
+                    cmd.Parameters.AddWithValue("@start", start);
+                    cmd.Parameters.AddWithValue("@end", end);
+
+                    using (var reader = await cmd.ExecuteReaderAsync())
+                    {
+                        while (await reader.ReadAsync())
+                        {
+                            result.Add(new HourlyUsage
+                            {
+                                Hour = int.Parse(reader.GetString(0)),
+                                TotalSeconds = reader.GetInt32(1)
+                            });
+                        }
+                    }
+                }
+            }
+
+            // --- Ensure all 24 hours exist ---
+            var fullDay = Enumerable.Range(0, 24)
+                .Select(h =>
+                {
+                    var existing = result.FirstOrDefault(r => r.Hour == h);
+                    return new HourlyUsage
+                    {
+                        Hour = h,
+                        TotalSeconds = existing != null ? existing.TotalSeconds : 0
+                    };
+                })
+                .ToList();
+
+
+            return fullDay;
+        }
+
+
+
 
     }
 }

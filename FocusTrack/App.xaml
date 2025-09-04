@@ -13,6 +13,7 @@
             <!-- External resource dictionaries -->
             <ResourceDictionary.MergedDictionaries>
                 <ResourceDictionary Source="Style/HeaderButtonStyle.xaml"/>
+                <ResourceDictionary Source="Style/DropdownStyle.xaml"/>
             </ResourceDictionary.MergedDictionaries>
         </ResourceDictionary>
     </Application.Resources>
