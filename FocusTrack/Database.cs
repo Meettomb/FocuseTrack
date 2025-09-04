@@ -17,31 +17,39 @@ namespace FocusTrack
 
         public static void Initialize()
         {
-            if (!File.Exists(DbFile))
+            try
             {
-                SQLiteConnection.CreateFile(DbFile);
-            }
-
-            using (var conn = new SQLiteConnection(ConnString))
-            {
-                conn.Open();
-                using (var cmd = conn.CreateCommand())
+                if (!File.Exists(DbFile))
                 {
-                    cmd.CommandText = @"
-                        CREATE TABLE IF NOT EXISTS AppUsage (
-                            Id INTEGER PRIMARY KEY AUTOINCREMENT,
-                            AppName TEXT,
-                            AppIcon BLOB,
-                            WindowTitle TEXT,
-                            StartTime TEXT,
-                            EndTime TEXT,
-                            DurationSeconds INTEGER,
-                            ExePath TEXT
-                        );";
-                    cmd.ExecuteNonQuery();
+                    SQLiteConnection.CreateFile(DbFile);
+                }
+
+                using (var conn = new SQLiteConnection(ConnString))
+                {
+                    conn.Open();
+                    using (var cmd = conn.CreateCommand())
+                    {
+                        cmd.CommandText = @"
+                    CREATE TABLE IF NOT EXISTS AppUsage (
+                        Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        AppName TEXT,
+                        AppIcon BLOB,
+                        WindowTitle TEXT,
+                        StartTime TEXT,
+                        EndTime TEXT,
+                        DurationSeconds INTEGER,
+                        ExePath TEXT
+                    );";
+                        cmd.ExecuteNonQuery();
+                    }
                 }
             }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine("Database initialization failed: " + ex.Message);
+            }
         }
+
 
         public static async Task SaveSessionAsync(string appName, string windowTitle, DateTime start, DateTime end, string exePath)
         {
@@ -185,6 +193,39 @@ namespace FocusTrack
             return fullDay;
         }
 
+
+        public static async Task<List<AppUsage>> GetAllAppUsageAsync()
+        {
+            var result = new List<AppUsage>();
+            using (var conn = new SQLiteConnection(ConnString))
+            {
+                await conn.OpenAsync();
+                using (var cmd = conn.CreateCommand())
+                {
+                    cmd.CommandText = @"
+                       SELECT AppName, SUM(DurationSeconds) AS TotalDuration, ExePath
+                        FROM AppUsage
+                        GROUP BY AppName, ExePath
+                        ORDER BY TotalDuration DESC;
+                        ";
+                   
+                    using (var reader = await cmd.ExecuteReaderAsync())
+                    {
+                        while (await reader.ReadAsync())
+                        {
+                            result.Add(new AppUsage
+                            {
+                                AppName = reader.GetString(0),
+                                Duration = TimeSpan.FromSeconds(reader.GetInt32(1)),
+                                ExePath = reader.IsDBNull(2) ? null : reader.GetString(2)
+                            });
+                        }
+
+                    }
+                }
+            }
+            return result;
+        }
 
 
 

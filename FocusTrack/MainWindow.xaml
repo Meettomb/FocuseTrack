@@ -14,84 +14,121 @@
         Width="800"
         Icon="/Images/AppLogo/FocusTrack.png">
 
-
     <Grid>
-        <!-- Header -->
-        <Border Background="#222" Height="auto" VerticalAlignment="Top">
+        <Grid.RowDefinitions>
+            <!-- Header row -->
+            <RowDefinition Height="Auto"/>
+
+            <!-- Main content row -->
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- Header (fixed, not scrollable) -->
+        <Border Background="#222" Grid.Row="0" Height="auto" VerticalAlignment="Top">
             <Grid>
-
-                <StackPanel 
-                    Orientation="Horizontal"
-                    VerticalAlignment="Center"
-                    Margin="10 0 0 0"
-                    >
-                    
-                
-                <Image Source="/Images/AppLogo/FocusTrack.png" 
-                       Width="50" Height="50"
-                       />
-
-                <TextBlock Text="Focus Track" 
-                       VerticalAlignment="Center" 
-                       Margin="10,0,0,0"
-                       Foreground="White"
-                       FontSize="22"
-                       FontWeight="Bold"/>
-                    
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="10 0 0 0">
+                    <Image Source="/Images/AppLogo/FocusTrack.png" Width="50" Height="50"/>
+                    <TextBlock Text="Focus Track"
+                               VerticalAlignment="Center"
+                               Margin="10,0,0,0"
+                               Foreground="White"
+                               FontSize="22"
+                               FontWeight="Bold"/>
                 </StackPanel>
+
                 <!-- Close/Minimize Buttons -->
-                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,0,0">
-
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
                     <Button Click="Setting_Button" Style="{StaticResource HeaderSettingStyle}"/>
-
                     <Button Click="Minimize_Click" Style="{StaticResource HeaderMinimizeStyle}"/>
-
                     <Button Style="{StaticResource HeaderMaximizeStyle}" Click="Maximize_Click"/>
-
                     <Button Click="Close_Click" Style="{StaticResource HeaderCloseButton}"/>
-
-
                 </StackPanel>
             </Grid>
         </Border>
 
-        <!-- Main Content -->
-        <Grid Margin="0,50,0,0">
-            <Grid.RowDefinitions>
-                <RowDefinition Height="Auto"/>
-                <!-- Dropdown row -->
-                <RowDefinition Height="*"/>
-                <!-- Chart row -->
-            </Grid.RowDefinitions>
+        <!-- Main Content with Scroll -->
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Hidden"
+                        CanContentScroll="False"
+                        PanningMode="VerticalFirst">
+            <Grid Margin="0,20,0,0">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
 
-            <!-- Dropdown -->
-            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="10 30 10 10"  Grid.Row="0">
-                <ComboBox x:Name="RangeSelecter"
-                          SelectionChanged="RangeSelectot_SelectionChanged"
-                          Width="120">
-                    <ComboBoxItem Content="Today" Tag="today" IsSelected="True"/>
-                    <ComboBoxItem Content="Last 7 Hours" Tag="7h"/>
-                    <ComboBoxItem Content="Last 24 Hours" Tag="24h"/>
-                    <ComboBoxItem Content="Last 7 Days" Tag="7d"/>
-                    <ComboBoxItem Content="Last 1 Month" Tag="1m"/>
-                    <ComboBoxItem Content="Last 3 Months" Tag="3m"/>
-                </ComboBox>
+                <!-- Dropdown -->
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="10 30 10 10" Grid.Row="0">
+                    <ComboBox x:Name="RangeSelecter"
+                              SelectionChanged="RangeSelectot_SelectionChanged"
+                              Width="120">
+                        <ComboBoxItem Content="Today" Tag="today" IsSelected="True"/>
+                        <ComboBoxItem Content="Last 7 Hours" Tag="7h"/>
+                        <ComboBoxItem Content="Last 24 Hours" Tag="24h"/>
+                        <ComboBoxItem Content="Last 7 Days" Tag="7d"/>
+                        <ComboBoxItem Content="Last 1 Month" Tag="1m"/>
+                        <ComboBoxItem Content="Last 3 Months" Tag="3m"/>
+                    </ComboBox>
+                </StackPanel>
 
-            </StackPanel>
+                <!-- Chart -->
+                <Grid Grid.Row="1" Margin="10 5 10 10" Height="400" VerticalAlignment="Top">
+                    <lvc:CartesianChart x:Name="UsageChart"/>
+                </Grid>
 
-            <!-- Chart -->
-            <Grid Grid.Row="1" Margin="10 5 10 10" Height="400" VerticalAlignment="Top">
-                <lvc:CartesianChart x:Name="UsageChart"/>
+                <!-- DataGrid -->
+                <Grid Grid.Row="2" Margin="10 20 10 20">
+                    <DataGrid x:Name="AppUsageGrid"
+              Style="{StaticResource AppUsageGridStyle}"
+              ColumnHeaderStyle="{StaticResource AppUsageGridColumnHeaderStyle}"
+              AutoGenerateColumns="False"
+              MaxHeight="300"
+              HorizontalAlignment="Stretch"
+              ScrollViewer.VerticalScrollBarVisibility="Hidden"
+              ScrollViewer.HorizontalScrollBarVisibility="Hidden"
+              CanUserAddRows="False"
+              IsReadOnly="True">
+
+                        <DataGrid.Columns>
+                            <!-- Icon: fixed left width -->
+                            <DataGridTemplateColumn Header="Icon" Width="60">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <Image Width="35" Height="35"
+                               Source="{Binding ExePath, Converter={StaticResource ExeToIconConverter}}"
+                               VerticalAlignment="Center"
+                               HorizontalAlignment="Center"
+                                               Margin="20 0 0 0"/>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+
+                            <!-- Application: fill center -->
+                            <DataGridTextColumn Header="Application" Binding="{Binding AppName}" Width="*" FontSize="16">
+                                <DataGridTextColumn.ElementStyle>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="VerticalAlignment" Value="Center"/>
+                                        <Setter Property="Margin" Value="30 0 0 0"/>
+                                    </Style>
+                                </DataGridTextColumn.ElementStyle>
+                            </DataGridTextColumn>
+
+                            <!-- Usage Time: fixed right width -->
+                            <DataGridTextColumn Header="Usage Time" Binding="{Binding Duration}" Width="150">
+                                <DataGridTextColumn.ElementStyle>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="VerticalAlignment" Value="Center"/>
+                                        <Setter Property="HorizontalAlignment" Value="Right"/>
+                                        <Setter Property="Margin" Value="0 0 20 0"/>
+                                    </Style>
+                                </DataGridTextColumn.ElementStyle>
+                            </DataGridTextColumn>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </Grid>
+
+
             </Grid>
-        </Grid>
-
-
-
-
-
+        </ScrollViewer>
     </Grid>
-
-
-
-
 </Window>

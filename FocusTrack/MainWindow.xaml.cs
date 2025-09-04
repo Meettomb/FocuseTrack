@@ -1,4 +1,5 @@
-﻿using FocusTrack.Model;
+﻿using FocusTrack.helpers;
+using FocusTrack.Model;
 using LiveChartsCore;
 using LiveChartsCore.SkiaSharpView;
 using LiveChartsCore.SkiaSharpView.Painting;
@@ -43,7 +44,8 @@ namespace FocusTrack
         {
             InitializeComponent();
             AppUsages = new ObservableCollection<AppUsage>();
-            Database.Initialize();
+
+            Database.Initialize(); // ensures DB file & table exist
 
             lastStart = DateTime.Now;
 
@@ -52,8 +54,17 @@ namespace FocusTrack
             timer.AutoReset = true;
             timer.Start();
 
-            this.Loaded += async (_, __) => await LoadDefaultGraph();
+            this.DataContext = this;
+
+            this.Loaded += async (_, __) =>
+            {
+                await LoadDefaultGraph();   // load chart
+                await LoadAllAppUsageAsync(); // load grid data safely
+            };
+
+            StartupHelper.AddToStartup();
         }
+
 
 
         private async void Timer_Elapsed(object sender, ElapsedEventArgs e)
@@ -69,13 +80,12 @@ namespace FocusTrack
 
             if (string.Equals(exePath, myExeName, StringComparison.OrdinalIgnoreCase))
             {
-                // ✅ Current app is FocusTrack → save previous app immediately
                 if (!string.IsNullOrEmpty(lastApp))
                 {
                     await Database.SaveSessionAsync(lastApp, lastTitle, lastStart, DateTime.Now, lastExePath);
+                    await RefreshUIAsync();
                 }
 
-                // Reset last app tracking because we don't track FocusTrack
                 lastApp = null;
                 lastTitle = null;
                 lastStart = DateTime.Now;
@@ -83,12 +93,12 @@ namespace FocusTrack
                 return;
             }
 
-            // If app changed or title changed
             if (appName != lastApp || windowTitle != lastTitle)
             {
                 if (!string.IsNullOrEmpty(lastApp))
                 {
                     await Database.SaveSessionAsync(lastApp, lastTitle, lastStart, DateTime.Now, lastExePath);
+                    await RefreshUIAsync();
                 }
 
                 lastApp = appName;
@@ -96,16 +106,23 @@ namespace FocusTrack
                 lastStart = DateTime.Now;
                 lastExePath = exePath;
             }
+        }
+
+        // Helper to update grid and chart
+        private async Task RefreshUIAsync()
+        {
+            var allData = await Database.GetAllAppUsageAsync();
+            var todayData = await Database.GetHourlyUsageAsync(DateTime.Today, DateTime.Now);
 
             Dispatcher.Invoke(() =>
             {
-               
+                AppUsages.Clear();
+                foreach (var item in allData)
+                    AppUsages.Add(item);
+
+                LoadGraphData(todayData);
             });
         }
-
-
-
-
 
 
 
@@ -153,48 +170,69 @@ namespace FocusTrack
         private void LoadGraphData(List<HourlyUsage> data)
         {
             if (UsageChart == null) return;
+
+            // Use double for fractional minutes
             UsageChart.Series = new ISeries[]
             {
-                new ColumnSeries<int>
-                {
-                    Values = data.Select(d => d.TotalSeconds / 60).ToArray(), // minutes
-                    Name = "Usage Time",
-                    Fill = new SolidColorPaint(SKColors.DodgerBlue)
-                }
+        new ColumnSeries<double>
+        {
+            Values = data.Select(d => d.TotalSeconds / 60.0).ToArray(), // convert seconds to minutes
+            Name = "Usage Time",
+            Fill = new SolidColorPaint(SKColors.DodgerBlue)
+        }
             };
 
             UsageChart.XAxes = new[]
             {
-                new Axis
-                {
-                    Labels = data.Select(d => d.Hour.ToString("00") + ":00").ToArray(),
-                    Name = "Hour of Day"
-                }
-            };
+        new Axis
+        {
+            Labels = data.Select(d => d.Hour.ToString("00") + ":00").ToArray(),
+            Name = "Hour of Day"
+        }
+    };
 
             UsageChart.YAxes = new[]
             {
-                new Axis
-                {
-                    Name = "Usage",
-                    MinLimit = 0,
-                    Labeler = value =>
-                    {
-                        if (value < 60)
-                            return $"{value} min";
-                        else
-                            return $"{value / 60:0} hr";
-                    }
-                }
-            };
+        new Axis
+        {
+            Name = "Usage",
+            MinLimit = 0,
+            Labeler = value =>
+            {
+                if (value < 1)
+                    return $"{value * 60:0}s";   // show seconds if less than 1 minute
+                else if (value < 60)
+                    return $"{value:0} min";      // show minutes
+                else
+                    return $"{value / 60:0} hr"; // show hours if more than 60 min
+            }
         }
-        
-        
+    };
+        }
+
         private async Task LoadDefaultGraph()
         {
             var todayData = await Database.GetHourlyUsageAsync(DateTime.Today, DateTime.Now);
             LoadGraphData(todayData);
         }
+
+
+        // Get all AppUsage data
+        private async Task LoadAllAppUsageAsync()
+        {
+            var allData = await Database.GetAllAppUsageAsync();
+            Dispatcher.Invoke(() =>
+            {
+                AppUsages.Clear();
+                foreach (var item in allData)
+                {
+                    AppUsages.Add(item);
+                }
+
+                AppUsageGrid.ItemsSource = AppUsages;
+            });
+        }
+
 
 
         // For dragging the window
