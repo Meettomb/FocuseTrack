@@ -23,6 +23,10 @@ using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
 using static FocusTrack.Database;
+using System.Windows.Forms; // for NotifyIcon
+using MessageBox = System.Windows.MessageBox;
+using WinForms = System.Windows.Forms;
+
 
 namespace FocusTrack
 {
@@ -31,6 +35,9 @@ namespace FocusTrack
     /// </summary>
     public partial class MainWindow : Window
     {
+        
+
+        private WinForms.NotifyIcon notifyIcon;
         public ObservableCollection<AppUsage> AppUsages { get; set; }
         public ImageSource IconImage { get; set; }
         private System.Timers.Timer timer;  // avoid ambiguity
@@ -43,6 +50,9 @@ namespace FocusTrack
         public MainWindow()
         {
             InitializeComponent();
+            // Create tray icon
+            SetupNotifyIcon();
+
             AppUsages = new ObservableCollection<AppUsage>();
 
             Database.Initialize(); // ensures DB file & table exist
@@ -269,18 +279,70 @@ namespace FocusTrack
             }
         }
 
-        
+
         private void Close_Click(object sender, RoutedEventArgs e)
         {
-            this.Close();
+            this.Hide();
+            this.ShowInTaskbar = false;
         }
 
+        private void ExitApplication()
+        {
+            notifyIcon.Visible = false;
+            notifyIcon.Dispose();
+            System.Windows.Application.Current.Shutdown(); // WPF shutdown
+        }
+
+
+
+        private void ShowWindow()
+        {
+            this.Dispatcher.Invoke(() =>
+            {
+                this.Show();
+                this.WindowState = WindowState.Normal;
+                this.ShowInTaskbar = true;
+                this.Activate();
+            });
+        }
+
+      
         private void Setting_Button(object sender, RoutedEventArgs e)
         {
             MessageBox.Show("Settings button clicked!");
         }
 
-        
+        private void SetupNotifyIcon()
+        {
+            notifyIcon = new WinForms.NotifyIcon();
+            notifyIcon.Icon = new System.Drawing.Icon("D:\\Website\\Dot Net Project\\FocusTrack\\FocusTrack\\Images\\AppLogo\\FocusTrack.ico");
+            notifyIcon.Visible = true;
+            notifyIcon.DoubleClick += (s, e) =>
+            {
+                this.Show();
+                this.WindowState = WindowState.Normal;
+                this.ShowInTaskbar = true;
+            };
+
+            var menu = new WinForms.ContextMenuStrip();
+            menu.Items.Add("Open", null, (s, e) =>
+            {
+                this.Show();
+                this.WindowState = WindowState.Normal;
+                this.ShowInTaskbar = true;
+            });
+
+            // Call WPF shutdown instead of WinForms Application.Exit()
+            menu.Items.Add("Exit", null, (s, e) =>
+            {
+                notifyIcon.Visible = false;
+                notifyIcon.Dispose();
+                System.Windows.Application.Current.Shutdown(); // proper WPF shutdown
+            });
+
+            notifyIcon.ContextMenuStrip = menu;
+        }
+
 
     }
 }

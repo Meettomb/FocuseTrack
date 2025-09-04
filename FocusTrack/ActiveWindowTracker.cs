@@ -36,7 +36,6 @@ namespace FocusTrack
         "ApplicationFrameHost",
         "SearchHost",
         "dfsvc",
-        "explorer",
         "svchost",
         "RuntimeBroker",
         "System",
@@ -69,7 +68,7 @@ namespace FocusTrack
 
             // Ignore processes running from Windows system folder
             if (string.IsNullOrWhiteSpace(exePath) ||
-                exePath.StartsWith(Environment.GetFolderPath(Environment.SpecialFolder.Windows), StringComparison.OrdinalIgnoreCase))
+                exePath.StartsWith(Environment.GetFolderPath(Environment.SpecialFolder.System), StringComparison.OrdinalIgnoreCase))
             {
                 return ("", "", "");
             }
@@ -186,10 +185,8 @@ namespace FocusTrack
                 { "gog", "GOG Galaxy" },
 
                 // Misc Popular Apps
-                { "onenote", "Microsoft OneNote" },
                 { "teamspeak3", "TeamSpeak 3" },
                 { "obs64", "OBS Studio" },
-                { "zoom", "Zoom" },
                 { "notion", "Notion" },
                 { "postman", "Postman" },
                 { "filezilla", "FileZilla" },
