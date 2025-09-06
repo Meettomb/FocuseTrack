@@ -1,5 +1,4 @@
-﻿using FocusTrack.Helpers;
-using System;
+﻿using System;
 using System.Globalization;
 using System.IO;
 using System.Windows.Data;
@@ -20,14 +19,13 @@ namespace FocusTrack.Converters
                     image.CacheOption = BitmapCacheOption.OnLoad;
                     image.StreamSource = ms;
                     image.EndInit();
-                    image.Freeze(); // safe for UI thread
                     return image;
                 }
             }
             return null;
         }
 
-        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
-            => throw new NotImplementedException();
+        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) => throw new NotImplementedException();
     }
+
 }

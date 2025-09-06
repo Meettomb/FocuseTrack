@@ -63,11 +63,11 @@
                               SelectionChanged="RangeSelectot_SelectionChanged"
                               Width="120">
                         <ComboBoxItem Content="Today" Tag="today" IsSelected="True"/>
-                        <ComboBoxItem Content="Last 7 Hours" Tag="7h"/>
                         <ComboBoxItem Content="Last 24 Hours" Tag="24h"/>
                         <ComboBoxItem Content="Last 7 Days" Tag="7d"/>
                         <ComboBoxItem Content="Last 1 Month" Tag="1m"/>
                         <ComboBoxItem Content="Last 3 Months" Tag="3m"/>
+                        <ComboBoxItem Content="Over All" Tag="overall"/>
                     </ComboBox>
                 </StackPanel>
 
@@ -95,10 +95,10 @@
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
                                         <Image Width="35" Height="35"
-                               Source="{Binding ExePath, Converter={StaticResource ExeToIconConverter}}"
-                               VerticalAlignment="Center"
-                               HorizontalAlignment="Center"
-                                               Margin="20 0 0 0"/>
+                                                Source="{Binding AppIcon, Converter={StaticResource ByteToImageConverter}}"
+                                                VerticalAlignment="Center"
+                                                HorizontalAlignment="Center"
+                                                Margin="20 0 0 0"/>
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellTemplate>
                             </DataGridTemplateColumn>

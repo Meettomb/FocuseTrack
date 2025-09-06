@@ -26,6 +26,7 @@ using static FocusTrack.Database;
 using System.Windows.Forms; // for NotifyIcon
 using MessageBox = System.Windows.MessageBox;
 using WinForms = System.Windows.Forms;
+using System.Data.SQLite;
 
 
 namespace FocusTrack
@@ -33,9 +34,10 @@ namespace FocusTrack
     /// <summary>
     /// Interaction logic for MainWindow.xaml
     /// </summary>
+    /// 
+
     public partial class MainWindow : Window
     {
-        
 
         private WinForms.NotifyIcon notifyIcon;
         public ObservableCollection<AppUsage> AppUsages { get; set; }
@@ -55,7 +57,8 @@ namespace FocusTrack
 
             AppUsages = new ObservableCollection<AppUsage>();
 
-            Database.Initialize(); // ensures DB file & table exist
+            // 🔹 Ensure DB file & AppUsage table exist before anything else uses it
+            Database.Initialize();
 
             lastStart = DateTime.Now;
 
@@ -68,7 +71,7 @@ namespace FocusTrack
 
             this.Loaded += async (_, __) =>
             {
-                await LoadDefaultGraph();   // load chart
+                await LoadDefaultGraph();    // load chart
                 await LoadAllAppUsageAsync(); // load grid data safely
             };
 
@@ -151,10 +154,6 @@ namespace FocusTrack
                         data = await Database.GetHourlyUsageAsync(DateTime.Today, DateTime.Now);
                         break;
 
-                    case "7h":
-                        data = await Database.GetHourlyUsageAsync(DateTime.Now.AddHours(-7), DateTime.Now);
-                        break;
-
                     case "24h":
                         data = await Database.GetHourlyUsageAsync(DateTime.Now.AddHours(-24), DateTime.Now);
                         break;
@@ -170,6 +169,11 @@ namespace FocusTrack
                     case "3m":
                         data = await Database.GetHourlyUsageAsync(DateTime.Now.AddMonths(-3), DateTime.Now);
                         break;
+
+                    case "overall":
+                        data = await Database.GetHourlyUsageAsync(null, null);
+                        break;
+
                 }
                 if (data != null)
                 {

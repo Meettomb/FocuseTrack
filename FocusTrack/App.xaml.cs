@@ -13,5 +13,16 @@ namespace FocusTrack
     /// </summary>
     public partial class App : Application
     {
+        protected override void OnStartup(StartupEventArgs e)
+        {
+            base.OnStartup(e);
+
+            // Ensure DB + table exist before UI
+            FocusTrack.Database.Initialize();
+
+            var mainWindow = new MainWindow();
+            mainWindow.Show();
+        }
+
     }
 }

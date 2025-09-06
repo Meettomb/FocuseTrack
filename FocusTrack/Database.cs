@@ -19,6 +19,7 @@ namespace FocusTrack
         {
             try
             {
+                // Create database file if missing
                 if (!File.Exists(DbFile))
                 {
                     SQLiteConnection.CreateFile(DbFile);
@@ -27,19 +28,21 @@ namespace FocusTrack
                 using (var conn = new SQLiteConnection(ConnString))
                 {
                     conn.Open();
+
                     using (var cmd = conn.CreateCommand())
                     {
+                        // Always run CREATE TABLE IF NOT EXISTS
                         cmd.CommandText = @"
-                    CREATE TABLE IF NOT EXISTS AppUsage (
-                        Id INTEGER PRIMARY KEY AUTOINCREMENT,
-                        AppName TEXT,
-                        AppIcon BLOB,
-                        WindowTitle TEXT,
-                        StartTime TEXT,
-                        EndTime TEXT,
-                        DurationSeconds INTEGER,
-                        ExePath TEXT
-                    );";
+                CREATE TABLE IF NOT EXISTS AppUsage (
+                    Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    AppName TEXT,
+                    AppIcon BLOB,
+                    WindowTitle TEXT,
+                    StartTime TEXT,
+                    EndTime TEXT,
+                    DurationSeconds INTEGER,
+                    ExePath TEXT
+                );";
                         cmd.ExecuteNonQuery();
                     }
                 }
@@ -49,6 +52,7 @@ namespace FocusTrack
                 System.Diagnostics.Debug.WriteLine("Database initialization failed: " + ex.Message);
             }
         }
+
 
 
         public static async Task SaveSessionAsync(string appName, string windowTitle, DateTime start, DateTime end, string exePath)
@@ -141,7 +145,7 @@ namespace FocusTrack
             public int TotalSeconds { get; set; }
         }
 
-        public static async Task<List<HourlyUsage>> GetHourlyUsageAsync(DateTime start, DateTime end)
+        public static async Task<List<HourlyUsage>> GetHourlyUsageAsync(DateTime? start, DateTime? end)
         {
             var result = new List<HourlyUsage>();
 
@@ -151,17 +155,29 @@ namespace FocusTrack
                 await conn.OpenAsync();
                 using (var cmd = conn.CreateCommand())
                 {
-                    cmd.CommandText = @"
-                SELECT strftime('%H', StartTime) as Hour,
-                       SUM(DurationSeconds) as TotalDuration
-                FROM AppUsage
-                WHERE StartTime BETWEEN @start AND @end
-                GROUP BY Hour
-                ORDER BY Hour";
+                    if (start == null || end == null)
+                    {
+                        cmd.CommandText = @"
+                    SELECT strftime('%H', StartTime) as Hour,
+                           SUM(DurationSeconds) as TotalDuration
+                    FROM AppUsage
+                    GROUP BY Hour
+                    ORDER BY Hour";
+                    }
+                    else
+                    {
 
-                    cmd.Parameters.AddWithValue("@start", start);
-                    cmd.Parameters.AddWithValue("@end", end);
+                        cmd.CommandText = @"
+                        SELECT strftime('%H', StartTime) as Hour,
+                               SUM(DurationSeconds) as TotalDuration
+                        FROM AppUsage
+                        WHERE StartTime BETWEEN @start AND @end
+                        GROUP BY Hour
+                        ORDER BY Hour";
 
+                        cmd.Parameters.AddWithValue("@start", start);
+                        cmd.Parameters.AddWithValue("@end", end);
+                    }
                     using (var reader = await cmd.ExecuteReaderAsync())
                     {
                         while (await reader.ReadAsync())
@@ -203,7 +219,7 @@ namespace FocusTrack
                 using (var cmd = conn.CreateCommand())
                 {
                     cmd.CommandText = @"
-                       SELECT AppName, SUM(DurationSeconds) AS TotalDuration, ExePath
+                       SELECT AppName, SUM(DurationSeconds) AS TotalDuration, ExePath, AppIcon
                         FROM AppUsage
                         GROUP BY AppName, ExePath
                         ORDER BY TotalDuration DESC;
@@ -217,7 +233,8 @@ namespace FocusTrack
                             {
                                 AppName = reader.GetString(0),
                                 Duration = TimeSpan.FromSeconds(reader.GetInt32(1)),
-                                ExePath = reader.IsDBNull(2) ? null : reader.GetString(2)
+                                ExePath = reader.IsDBNull(2) ? null : reader.GetString(2),
+                                AppIcon = reader.IsDBNull(3) ? null : reader.GetFieldValue<byte[]>(3)
                             });
                         }
 
@@ -226,6 +243,10 @@ namespace FocusTrack
             }
             return result;
         }
+
+
+     
+
 
 
 
