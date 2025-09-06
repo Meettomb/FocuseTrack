@@ -159,6 +159,7 @@ namespace FocusTrack
         // Helper to update grid and chart
         private async Task RefreshUIAsync()
         {
+            SelectedDate = DateTime.Today;
             var allData = await Database.GetAllAppUsageAsync(DateTime.Today, DateTime.Now);
             var todayData = await Database.GetHourlyUsageAsync(DateTime.Today, DateTime.Now);
 
@@ -189,11 +190,6 @@ namespace FocusTrack
                     case "today":
                         data = await Database.GetHourlyUsageAsync(DateTime.Today, DateTime.Now);
                         await LoadAllAppUsageAsync(DateTime.Today, DateTime.Now);
-                        break;
-
-                    case "24h":
-                        data = await Database.GetHourlyUsageAsync(DateTime.Now.AddHours(-24), DateTime.Now);
-                        await LoadAllAppUsageAsync(DateTime.Now.AddHours(-24), DateTime.Now);
                         break;
 
                     case "7d":
@@ -227,12 +223,18 @@ namespace FocusTrack
         {
             if (UsageChart == null) return;
 
-            // Use double for fractional minutes
+            if (!Dispatcher.CheckAccess())
+            {
+                Dispatcher.Invoke(() => LoadGraphData(data));
+                return;
+            }
+
+            // safe: UI thread
             UsageChart.Series = new ISeries[]
             {
             new ColumnSeries<double>
             {
-                Values = data.Select(d => d.TotalSeconds / 60.0).ToArray(), // convert seconds to minutes
+                Values = data.Select(d => d.TotalSeconds / 60.0).ToArray(),
                 Name = "Usage Time",
                 Fill = new SolidColorPaint(SKColors.LightBlue)
             }
@@ -244,13 +246,8 @@ namespace FocusTrack
                 {
                     Labels = data.Select(d => d.Hour.ToString("00") + ":00").ToArray(),
                     Name = "Hour of Day",
-
                     LabelsPaint = new SolidColorPaint(SKColors.DodgerBlue),
-                    // Color of the axis title
                     NamePaint = new SolidColorPaint(SKColors.White)
-                    {
-
-                    },
                 }
             };
 
@@ -259,24 +256,22 @@ namespace FocusTrack
                 new Axis
                 {
                     Name = "Usage",
-                    NamePaint = new SolidColorPaint(SKColors.White)
-                    {
-
-                    },
+                    NamePaint = new SolidColorPaint(SKColors.White),
                     LabelsPaint = new SolidColorPaint(SKColors.DodgerBlue),
                     MinLimit = 0,
                     Labeler = value =>
                     {
                         if (value < 1)
-                            return $"{value * 60:0}s";   // show seconds if less than 1 minute
+                            return $"{value * 60:0}s";
                         else if (value < 60)
-                            return $"{value:0} min";      // show minutes
+                            return $"{value:0} min";
                         else
-                            return $"{value / 60:0} hr"; // show hours if more than 60 min
+                            return $"{value / 60:0} hr";
                     }
                 }
             };
         }
+
 
         private async Task LoadDefaultGraph()
         {
