@@ -1,4 +1,5 @@
-﻿using FocusTrack.helpers;
+﻿using FocusTrack.Controls;
+using FocusTrack.helpers;
 using FocusTrack.Model;
 using LiveChartsCore;
 using LiveChartsCore.SkiaSharpView;
@@ -7,6 +8,8 @@ using SkiaSharp;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.ComponentModel;
+using System.Data.SQLite;
 using System.Diagnostics;
 using System.Linq;
 using System.Text;
@@ -16,6 +19,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
 using System.Windows.Documents;
+using System.Windows.Forms; // for NotifyIcon
 using System.Windows.Input;
 using System.Windows.Markup;
 using System.Windows.Media;
@@ -23,10 +27,8 @@ using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
 using static FocusTrack.Database;
-using System.Windows.Forms; // for NotifyIcon
 using MessageBox = System.Windows.MessageBox;
 using WinForms = System.Windows.Forms;
-using System.Data.SQLite;
 
 
 namespace FocusTrack
@@ -36,7 +38,7 @@ namespace FocusTrack
     /// </summary>
     /// 
 
-    public partial class MainWindow : Window
+    public partial class MainWindow : Window, INotifyPropertyChanged
     {
 
         private WinForms.NotifyIcon notifyIcon;
@@ -48,12 +50,41 @@ namespace FocusTrack
         private string lastExePath = "";
         private DateTime lastStart;
 
+        private DateTime _selectedDate = DateTime.Today;
+        public DateTime SelectedDate
+        {
+            get => _selectedDate;
+            set
+            {
+                if (_selectedDate != value)
+                {
+                    _selectedDate = value;
+                    OnPropertyChanged(nameof(SelectedDate));
+                }
+            }
+        }
+        public event PropertyChangedEventHandler PropertyChanged;
+        protected void OnPropertyChanged(string name)
+        {
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
+        }
 
         public MainWindow()
         {
             InitializeComponent();
+
+            // Assuming the Border is the direct child of the Popup
+            if (CalendarPopup.Child is Border border && border.Child is CustomCalendar calendar)
+            {
+                calendar.DateSelected += (s, date) =>
+                {
+                    CalendarPopup.IsOpen = false; // close the popup
+                };
+            }
+
             // Create tray icon
             SetupNotifyIcon();
+            DataContext = this;
 
             AppUsages = new ObservableCollection<AppUsage>();
 
@@ -76,6 +107,8 @@ namespace FocusTrack
             };
 
             StartupHelper.AddToStartup();
+
+            
         }
 
 
@@ -124,7 +157,7 @@ namespace FocusTrack
         // Helper to update grid and chart
         private async Task RefreshUIAsync()
         {
-            var allData = await Database.GetAllAppUsageAsync(DateTime.MinValue, DateTime.Now);
+            var allData = await Database.GetAllAppUsageAsync(DateTime.Today, DateTime.Now);
             var todayData = await Database.GetHourlyUsageAsync(DateTime.Today, DateTime.Now);
 
             Dispatcher.Invoke(() =>
@@ -199,7 +232,7 @@ namespace FocusTrack
             {
                 Values = data.Select(d => d.TotalSeconds / 60.0).ToArray(), // convert seconds to minutes
                 Name = "Usage Time",
-                Fill = new SolidColorPaint(SKColors.White)
+                Fill = new SolidColorPaint(SKColors.LightBlue)
             }
             };
 
@@ -379,5 +412,21 @@ namespace FocusTrack
         }
 
 
+        // Previous Day Button
+        private void PrevDayButton_Click(object sender, RoutedEventArgs e)
+        {
+            SelectedDate = SelectedDate.AddDays(-1);
+        }
+
+        private void NextDayButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (SelectedDate < DateTime.Today)
+                SelectedDate = SelectedDate.AddDays(1);
+        }
+
+        private void DateTextBlock_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+        {
+            CalendarPopup.IsOpen = true;
+        }
     }
 }

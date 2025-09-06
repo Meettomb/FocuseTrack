@@ -16,6 +16,8 @@
                 <ResourceDictionary Source="Style/DropdownStyle.xaml"/>
                 <ResourceDictionary Source="Style/ScrollbarStyle.xaml"/>
                 <ResourceDictionary Source="Style/AllAppUsageStyle.xaml"/>
+                <ResourceDictionary Source="Style/DateSelectorStyle.xaml"/>
+                <ResourceDictionary Source="Style/CalendarStyle.xaml"/>
             </ResourceDictionary.MergedDictionaries>
         </ResourceDictionary>
     </Application.Resources>

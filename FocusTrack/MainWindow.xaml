@@ -4,6 +4,8 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:lvc="clr-namespace:LiveChartsCore.SkiaSharpView.WPF;assembly=LiveChartsCore.SkiaSharpView.WPF"
+        xmlns:sys="clr-namespace:System;assembly=mscorlib"
+        xmlns:controls="clr-namespace:FocusTrack.Controls"
         mc:Ignorable="d"
         WindowStyle="None"
         ResizeMode="NoResize"
@@ -55,10 +57,11 @@
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
 
                 <!-- Dropdown -->
-                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="10 30 10 10" Grid.Row="0">
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="10 0 10 10" Grid.Row="0">
                     <ComboBox x:Name="RangeSelecter"
                               SelectionChanged="RangeSelectot_SelectionChanged"
                               Width="120">
@@ -76,8 +79,43 @@
                     <lvc:CartesianChart x:Name="UsageChart"/>
                 </Grid>
 
+                <!-- Date Select-->
+                <Grid Grid.Row="2" Margin="0,20,0,20" HorizontalAlignment="Center">
+                    <!-- Define two columns: auto width for button, remaining space for TextBlock -->
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+
+                    <!-- Previous Day Button -->
+                    <Button Style="{StaticResource PrevDayButton}" Grid.Column="0"
+                        Click="PrevDayButton_Click">
+                    </Button>
+
+                    <!-- Date TextBlock -->
+                    <TextBlock Grid.Column="1"
+                           Name="DateTextBlock"
+                           Style="{StaticResource DateSelect}"
+                           Text="{Binding SelectedDate, StringFormat=d-MMMM-yyyy}"
+                           VerticalAlignment="Center"
+                           Padding="5"
+                           MouseLeftButtonUp="DateTextBlock_MouseLeftButtonUp"
+                           Cursor="Hand"/>  
+
+                    <!-- Hidden DatePicker -->
+                   
+
+
+                    <!-- Next Day Button -->
+                    <Button Style="{StaticResource NextDayButton}" Grid.Column="2"
+                        Click="NextDayButton_Click">
+                    </Button>
+
+                </Grid>
+
                 <!-- DataGrid -->
-                <Grid Grid.Row="2" Margin="10 20 10 20">
+                <Grid Grid.Row="3" Margin="10 20 10 20">
                     <DataGrid x:Name="AppUsageGrid"
                       Style="{StaticResource AppUsageGridStyle}"
                       ColumnHeaderStyle="{StaticResource AppUsageGridColumnHeaderStyle}"
@@ -130,5 +168,16 @@
 
             </Grid>
         </ScrollViewer>
+        <Popup x:Name="CalendarPopup"
+            Placement="Center"
+            StaysOpen="False"
+            AllowsTransparency="True"
+            PopupAnimation="Fade"
+            IsOpen="{Binding IsCalendarOpen}">
+            <Border Background="#222" CornerRadius="8" Padding="10">
+                <controls:CustomCalendar x:Name="CustomCalendarName" SelectedDate="{Binding SelectedDate, Mode=TwoWay}" />
+            </Border>
+        </Popup>
+
     </Grid>
 </Window>
