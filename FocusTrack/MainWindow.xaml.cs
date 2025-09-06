@@ -60,6 +60,8 @@ namespace FocusTrack
                 {
                     _selectedDate = value;
                     OnPropertyChanged(nameof(SelectedDate));
+
+                    LoadDataForSelectedDate();
                 }
             }
         }
@@ -428,5 +430,17 @@ namespace FocusTrack
         {
             CalendarPopup.IsOpen = true;
         }
+
+        private async void LoadDataForSelectedDate()
+        {
+            DateTime start = SelectedDate.Date;
+            DateTime end = SelectedDate.Date.AddDays(1).AddSeconds(-1);
+
+            var hourlyData = await Database.GetHourlyUsageAsync(start, end);
+            LoadGraphData(hourlyData);
+
+            await LoadAllAppUsageAsync(start, end);
+        }
+
     }
 }
