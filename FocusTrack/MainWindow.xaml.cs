@@ -72,7 +72,7 @@ namespace FocusTrack
             this.Loaded += async (_, __) =>
             {
                 await LoadDefaultGraph();    // load chart
-                await LoadAllAppUsageAsync(); // load grid data safely
+                await LoadDefaultAppUsage(); // load grid data safely
             };
 
             StartupHelper.AddToStartup();
@@ -124,7 +124,7 @@ namespace FocusTrack
         // Helper to update grid and chart
         private async Task RefreshUIAsync()
         {
-            var allData = await Database.GetAllAppUsageAsync();
+            var allData = await Database.GetAllAppUsageAsync(DateTime.MinValue, DateTime.Now);
             var todayData = await Database.GetHourlyUsageAsync(DateTime.Today, DateTime.Now);
 
             Dispatcher.Invoke(() =>
@@ -147,31 +147,38 @@ namespace FocusTrack
                 string range = selected.Tag.ToString();
 
                 List<HourlyUsage> data = null;
+                List<HourlyUsage> Listdata = null;
 
                 switch (range)
                 {
                     case "today":
                         data = await Database.GetHourlyUsageAsync(DateTime.Today, DateTime.Now);
+                        await LoadAllAppUsageAsync(DateTime.Today, DateTime.Now);
                         break;
 
                     case "24h":
                         data = await Database.GetHourlyUsageAsync(DateTime.Now.AddHours(-24), DateTime.Now);
+                        await LoadAllAppUsageAsync(DateTime.Now.AddHours(-24), DateTime.Now);
                         break;
 
                     case "7d":
                         data = await Database.GetHourlyUsageAsync(DateTime.Now.AddDays(-7), DateTime.Now);
+                        await LoadAllAppUsageAsync(DateTime.Now.AddDays(-7), DateTime.Now);
                         break;
 
                     case "1m":
                         data = await Database.GetHourlyUsageAsync(DateTime.Now.AddMonths(-1), DateTime.Now);
+                        await LoadAllAppUsageAsync(DateTime.Now.AddMonths(-1), DateTime.Now);
                         break;
 
                     case "3m":
                         data = await Database.GetHourlyUsageAsync(DateTime.Now.AddMonths(-3), DateTime.Now);
+                        await LoadAllAppUsageAsync(DateTime.Now.AddMonths(-3), DateTime.Now);
                         break;
 
                     case "overall":
                         data = await Database.GetHourlyUsageAsync(null, null);
+                        await LoadAllAppUsageAsync(null, null);
                         break;
 
                 }
@@ -188,40 +195,52 @@ namespace FocusTrack
             // Use double for fractional minutes
             UsageChart.Series = new ISeries[]
             {
-        new ColumnSeries<double>
-        {
-            Values = data.Select(d => d.TotalSeconds / 60.0).ToArray(), // convert seconds to minutes
-            Name = "Usage Time",
-            Fill = new SolidColorPaint(SKColors.DodgerBlue)
-        }
+            new ColumnSeries<double>
+            {
+                Values = data.Select(d => d.TotalSeconds / 60.0).ToArray(), // convert seconds to minutes
+                Name = "Usage Time",
+                Fill = new SolidColorPaint(SKColors.White)
+            }
             };
 
             UsageChart.XAxes = new[]
             {
-        new Axis
-        {
-            Labels = data.Select(d => d.Hour.ToString("00") + ":00").ToArray(),
-            Name = "Hour of Day"
-        }
-    };
+                new Axis
+                {
+                    Labels = data.Select(d => d.Hour.ToString("00") + ":00").ToArray(),
+                    Name = "Hour of Day",
+
+                    LabelsPaint = new SolidColorPaint(SKColors.DodgerBlue),
+                    // Color of the axis title
+                    NamePaint = new SolidColorPaint(SKColors.White)
+                    {
+
+                    },
+                }
+            };
 
             UsageChart.YAxes = new[]
             {
-        new Axis
-        {
-            Name = "Usage",
-            MinLimit = 0,
-            Labeler = value =>
-            {
-                if (value < 1)
-                    return $"{value * 60:0}s";   // show seconds if less than 1 minute
-                else if (value < 60)
-                    return $"{value:0} min";      // show minutes
-                else
-                    return $"{value / 60:0} hr"; // show hours if more than 60 min
-            }
-        }
-    };
+                new Axis
+                {
+                    Name = "Usage",
+                    NamePaint = new SolidColorPaint(SKColors.White)
+                    {
+
+                    },
+                    LabelsPaint = new SolidColorPaint(SKColors.DodgerBlue),
+                    MinLimit = 0,
+                    Labeler = value =>
+                    {
+                        if (value < 1)
+                            return $"{value * 60:0}s";   // show seconds if less than 1 minute
+                        else if (value < 60)
+                            return $"{value:0} min";      // show minutes
+                        else
+                            return $"{value / 60:0} hr"; // show hours if more than 60 min
+                    }
+                }
+            };
         }
 
         private async Task LoadDefaultGraph()
@@ -231,20 +250,32 @@ namespace FocusTrack
         }
 
 
+
         // Get all AppUsage data
-        private async Task LoadAllAppUsageAsync()
+        private async Task LoadAllAppUsageAsync(DateTime? start, DateTime? end)
         {
-            var allData = await Database.GetAllAppUsageAsync();
+            var allData = await Database.GetAllAppUsageAsync(start, end) ?? new List<AppUsage>();
+
             Dispatcher.Invoke(() =>
             {
+                if (AppUsages == null)
+                    AppUsages = new ObservableCollection<AppUsage>();
+
                 AppUsages.Clear();
+
                 foreach (var item in allData)
                 {
                     AppUsages.Add(item);
                 }
 
-                AppUsageGrid.ItemsSource = AppUsages;
+                if (AppUsageGrid != null)
+                    AppUsageGrid.ItemsSource = AppUsages;
             });
+        }
+
+        private async Task LoadDefaultAppUsage()
+        { 
+           await LoadAllAppUsageAsync(DateTime.Today, DateTime.Now);
         }
 
 

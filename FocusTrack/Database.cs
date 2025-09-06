@@ -1,12 +1,14 @@
 ﻿using FocusTrack.Model;
 using System;
 using System.Collections.Generic;
+using System.Data.Common;
 using System.Data.SQLite;
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using Xceed.Wpf.Toolkit.Primitives;
 
 namespace FocusTrack
 {
@@ -149,7 +151,6 @@ namespace FocusTrack
         {
             var result = new List<HourlyUsage>();
 
-            // Query DB
             using (var conn = new System.Data.SQLite.SQLiteConnection(Database.ConnString))
             {
                 await conn.OpenAsync();
@@ -210,7 +211,7 @@ namespace FocusTrack
         }
 
 
-        public static async Task<List<AppUsage>> GetAllAppUsageAsync()
+        public static async Task<List<AppUsage>> GetAllAppUsageAsync(DateTime? start, DateTime? end)
         {
             var result = new List<AppUsage>();
             using (var conn = new SQLiteConnection(ConnString))
@@ -218,29 +219,49 @@ namespace FocusTrack
                 await conn.OpenAsync();
                 using (var cmd = conn.CreateCommand())
                 {
-                    cmd.CommandText = @"
-                       SELECT AppName, SUM(DurationSeconds) AS TotalDuration, ExePath, AppIcon
+
+                    if (start == null || end == null)
+                    {
+                        cmd.CommandText = @"
+                        SELECT strftime('%H', StartTime) as Hour,
+                           SUM(DurationSeconds) as TotalDuration, AppName, ExePath, AppIcon
+                            FROM AppUsage 
+                            GROUP BY AppName
+                            ORDER BY TotalDuration DESC
+                            ";
+                    }
+                    else {
+                        cmd.CommandText = @"
+                       SELECT strftime('%H', StartTime) as Hour,
+                               SUM(DurationSeconds) as TotalDuration, AppName, ExePath, AppIcon
                         FROM AppUsage
-                        GROUP BY AppName, ExePath
+                        WHERE StartTime BETWEEN @start AND @end
+                        GROUP BY AppName
                         ORDER BY TotalDuration DESC;
                         ";
-                   
+
+                        cmd.Parameters.AddWithValue("@start", start);
+                        cmd.Parameters.AddWithValue("@end", end);
+                    }
+        
                     using (var reader = await cmd.ExecuteReaderAsync())
                     {
                         while (await reader.ReadAsync())
                         {
                             result.Add(new AppUsage
                             {
-                                AppName = reader.GetString(0),
-                                Duration = TimeSpan.FromSeconds(reader.GetInt32(1)),
-                                ExePath = reader.IsDBNull(2) ? null : reader.GetString(2),
-                                AppIcon = reader.IsDBNull(3) ? null : reader.GetFieldValue<byte[]>(3)
+                                AppName = reader["AppName"].ToString(),
+                                Duration = TimeSpan.FromSeconds(Convert.ToInt32(reader["TotalDuration"])),
+                                ExePath = reader["ExePath"] as string,
+                                AppIcon = reader["AppIcon"] as byte[]
                             });
                         }
 
                     }
                 }
             }
+            
+            
             return result;
         }
 
