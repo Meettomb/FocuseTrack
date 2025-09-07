@@ -62,6 +62,7 @@ namespace FocusTrack
                     _selectedDate = value;
                     OnPropertyChanged(nameof(SelectedDate));
 
+
                 }
             }
         }

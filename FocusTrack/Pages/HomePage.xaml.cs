@@ -51,9 +51,13 @@ namespace FocusTrack.Pages
                     _selectedDate = value;
                     OnPropertyChanged(nameof(SelectedDate));
 
+                    // Call the method when SelectedDate changes
+
+                    _ = LoadDataForSelectedDate();
                 }
             }
         }
+
 
         public event PropertyChangedEventHandler PropertyChanged;
         protected void OnPropertyChanged(string propertyName)
@@ -210,34 +214,46 @@ namespace FocusTrack.Pages
                 return;
             }
 
-            // safe: UI thread
+            // Ensure all 24 hours are present
+            var completeData = Enumerable.Range(0, 24)
+                .Select(hour => new HourlyUsage
+                {
+                    Hour = hour,
+                    TotalSeconds = data.FirstOrDefault(d => d.Hour == hour)?.TotalSeconds ?? 0
+                })
+                .ToList();
+
             UsageChart.Series = new ISeries[]
-            {
-            new ColumnSeries<double>
-            {
-                Values = data.Select(d => d.TotalSeconds / 60.0).ToArray(),
-                Name = "Usage Time",
-                Fill = new SolidColorPaint(SKColors.LightBlue)
-            }
-            };
+             {
+                new ColumnSeries<double>
+                {
+                    Values = completeData.Select(d => d.TotalSeconds / 60.0).ToArray(),
+                    Name = "Usage Time",
+                    Fill = new SolidColorPaint(SKColors.LightBlue),
+                    MaxBarWidth = 45  // Adjust bar width to your preference
+                }
+             };
 
             UsageChart.XAxes = new[]
             {
                 new Axis
                 {
-                    Labels = data.Select(d => d.Hour.ToString("00") + ":00").ToArray(),
+                    Labels = completeData.Select(d => d.Hour.ToString("00") + ":00").ToArray(),
+                    LabelsRotation =0,
                     Name = "Hour of Day",
                     LabelsPaint = new SolidColorPaint(SKColors.DodgerBlue),
-                    NamePaint = new SolidColorPaint(SKColors.White)
+                    NamePaint = new SolidColorPaint(SKColors.White),
+                    NameTextSize = 14
                 }
             };
 
-            UsageChart.YAxes = new[]
-            {
+                UsageChart.YAxes = new[]
+                {
                 new Axis
                 {
                     Name = "Usage",
                     NamePaint = new SolidColorPaint(SKColors.White),
+                    NameTextSize = 14,
                     LabelsPaint = new SolidColorPaint(SKColors.DodgerBlue),
                     MinLimit = 0,
                     Labeler = value =>
@@ -251,6 +267,8 @@ namespace FocusTrack.Pages
                     }
                 }
             };
+
+
         }
 
 
@@ -306,7 +324,7 @@ namespace FocusTrack.Pages
             CalendarPopup.IsOpen = true;
         }
 
-        private async void LoadDataForSelectedDate()
+        private async Task LoadDataForSelectedDate()
         {
             DateTime start = SelectedDate.Date;
             DateTime end = SelectedDate.Date.AddDays(1).AddSeconds(-1);
@@ -316,6 +334,7 @@ namespace FocusTrack.Pages
 
             await LoadAllAppUsageAsync(start, end);
         }
+
 
 
 

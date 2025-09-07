@@ -39,7 +39,7 @@
 
                 <!-- Chart -->
                 <Grid Grid.Row="1" Margin="10 5 10 10" Height="400" VerticalAlignment="Top">
-                    <lvc:CartesianChart x:Name="UsageChart"/>
+                    <lvc:CartesianChart x:Name="UsageChart" HorizontalAlignment="Stretch"/>
                 </Grid>
 
                 <!-- Date Select-->

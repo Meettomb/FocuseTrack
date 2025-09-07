@@ -20,8 +20,8 @@
                                                   Foreground="{TemplateBinding Foreground}"
                                                  VerticalAlignment="Center"
                                                  HorizontalAlignment="Center"
-                                                 Width="25"
-                                                 Height="25"/>
+                                                 Width="22"
+                                                 Height="22"/>
                         
                     </Border>
 
@@ -63,8 +63,8 @@
                                                  Foreground="{TemplateBinding Foreground}"
                                                 VerticalAlignment="Center"
                                                 HorizontalAlignment="Center"
-                                                Width="25"
-                                                Height="25"/>
+                                                Width="22"
+                                                Height="22"/>
                     </Border>
 
                     <ControlTemplate.Triggers>
@@ -105,8 +105,8 @@
                                                 Foreground="{TemplateBinding Foreground}"
                                                VerticalAlignment="Center"
                                                HorizontalAlignment="Center"
-                                               Width="25"
-                                               Height="25"/>
+                                               Width="22"
+                                               Height="22"/>
                     </Border>
 
                     <ControlTemplate.Triggers>
