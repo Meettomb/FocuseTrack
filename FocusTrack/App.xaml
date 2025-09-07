@@ -18,6 +18,7 @@
                 <ResourceDictionary Source="Style/AllAppUsageStyle.xaml"/>
                 <ResourceDictionary Source="Style/DateSelectorStyle.xaml"/>
                 <ResourceDictionary Source="Style/CalendarStyle.xaml"/>
+                <ResourceDictionary Source="Style/NavButtonsStyle.xaml"/>
             </ResourceDictionary.MergedDictionaries>
         </ResourceDictionary>
     </Application.Resources>

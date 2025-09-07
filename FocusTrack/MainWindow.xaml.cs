@@ -371,12 +371,6 @@ namespace FocusTrack
             });
         }
 
-      
-        private void Setting_Button(object sender, RoutedEventArgs e)
-        {
-            MessageBox.Show("Settings button clicked!");
-        }
-
         private void SetupNotifyIcon()
         {
             notifyIcon = new WinForms.NotifyIcon();
@@ -436,6 +430,24 @@ namespace FocusTrack
 
             await LoadAllAppUsageAsync(start, end);
         }
+
+
+        private void SettingButton_Click(object sender, RoutedEventArgs e)
+        {
+            //MessageBox.Show("Settings button clicked!");
+        }
+        private void HomeButton_Click(object sender, RoutedEventArgs e)
+        {
+            // Navigate to home page
+        }
+
+        private void AppOpenTimeButton_Click(object sender, RoutedEventArgs e)
+        {
+            // Navigate to App Open Time page
+        }
+
+
+
 
     }
 }
