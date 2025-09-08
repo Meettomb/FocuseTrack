@@ -25,6 +25,11 @@ using System.Windows.Navigation;
 using System.Windows.Shapes;
 using static FocusTrack.Database;
 
+
+using LiveChartsCore.SkiaSharpView;
+using LiveChartsCore.SkiaSharpView.Painting;
+using LiveChartsCore;
+
 namespace FocusTrack.Pages
 {
     /// <summary>
@@ -156,7 +161,7 @@ namespace FocusTrack.Pages
                 foreach (var item in allData)
                     AppUsages.Add(item);
 
-                //LoadGraphData(todayData);
+                LoadGraphData(todayData);
             });
         }
 
@@ -193,7 +198,7 @@ namespace FocusTrack.Pages
                         break;
 
                     case "overall":
-                        data = await Database.GetHourlyUsageAsync(null, null);
+                        data = await Database.GetHourlyUsageAsync(DateTime.MinValue, DateTime.Now);
                         await LoadAllAppUsageAsync(null, null);
                         break;
 
@@ -214,32 +219,34 @@ namespace FocusTrack.Pages
                 return;
             }
 
-            // Ensure all 24 hours are present
+            // Aggregate usage by hour of day across all dates
             var completeData = Enumerable.Range(0, 24)
                 .Select(hour => new HourlyUsage
                 {
                     Hour = hour,
-                    TotalSeconds = data.FirstOrDefault(d => d.Hour == hour)?.TotalSeconds ?? 0
+                    TotalSeconds = data.Where(d => d.Hour == hour).Sum(d => d.TotalSeconds)
                 })
                 .ToList();
 
             UsageChart.Series = new ISeries[]
-             {
-                new ColumnSeries<double>
-                {
-                    Values = completeData.Select(d => d.TotalSeconds / 60.0).ToArray(),
-                    Name = "Usage Time",
-                    Fill = new SolidColorPaint(SKColors.LightBlue),
-                    MaxBarWidth = 45  // Adjust bar width to your preference
-                }
-             };
+            {
+            new ColumnSeries<double>
+            {
+                Values = completeData.Select(d => d.TotalSeconds / 60.0).ToArray(), // Total minutes
+                Name = "Usage Time",
+                Fill = new SolidColorPaint(SKColors.LightBlue),
+                MaxBarWidth = 80 // wider bars for visual clarity
+
+            }
+            };
+
 
             UsageChart.XAxes = new[]
             {
                 new Axis
                 {
                     Labels = completeData.Select(d => d.Hour.ToString("00") + ":00").ToArray(),
-                    LabelsRotation =0,
+                    LabelsRotation = 0,
                     Name = "Hour of Day",
                     LabelsPaint = new SolidColorPaint(SKColors.DodgerBlue),
                     NamePaint = new SolidColorPaint(SKColors.White),
@@ -247,8 +254,8 @@ namespace FocusTrack.Pages
                 }
             };
 
-                UsageChart.YAxes = new[]
-                {
+            UsageChart.YAxes = new[]
+            {
                 new Axis
                 {
                     Name = "Usage",
@@ -263,13 +270,22 @@ namespace FocusTrack.Pages
                         else if (value < 60)
                             return $"{value:0} min";
                         else
-                            return $"{value / 60:0} hr";
+                        {
+                            int hours = (int)(value / 60);
+                            int minutes = (int)(value % 60);
+                            return $"{hours}:{minutes:00} hr"; // e.g. 1:30 hr
+                        }
                     }
+
                 }
             };
-
-
         }
+
+
+
+
+
+
 
 
         private async Task LoadDefaultGraph()
@@ -291,13 +307,10 @@ namespace FocusTrack.Pages
                     AppUsages = new ObservableCollection<AppUsage>();
 
                 AppUsages.Clear();
-
                 foreach (var item in allData)
-                {
                     AppUsages.Add(item);
-                }
 
-                if (AppUsageGrid != null)
+                if (AppUsageGrid != null && AppUsageGrid.ItemsSource == null)
                     AppUsageGrid.ItemsSource = AppUsages;
             });
         }

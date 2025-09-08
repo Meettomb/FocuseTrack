@@ -80,15 +80,15 @@
                 <!-- DataGrid -->
                 <Grid Grid.Row="3" Margin="10 20 10 20">
                     <DataGrid x:Name="AppUsageGrid"
-              Style="{StaticResource AppUsageGridStyle}"
-              ColumnHeaderStyle="{StaticResource AppUsageGridColumnHeaderStyle}"
-              AutoGenerateColumns="False"
-              MaxHeight="300"
-              HorizontalAlignment="Stretch"
-              ScrollViewer.VerticalScrollBarVisibility="Hidden"
-              ScrollViewer.HorizontalScrollBarVisibility="Hidden"
-              CanUserAddRows="False"
-              IsReadOnly="True">
+                          Style="{StaticResource AppUsageGridStyle}"
+                          ColumnHeaderStyle="{StaticResource AppUsageGridColumnHeaderStyle}"
+                          AutoGenerateColumns="False"
+                          MaxHeight="300"
+                          HorizontalAlignment="Stretch"
+                          ScrollViewer.VerticalScrollBarVisibility="Hidden"
+                          ScrollViewer.HorizontalScrollBarVisibility="Hidden"
+                          CanUserAddRows="False"
+                          IsReadOnly="True">    
 
                         <DataGrid.Columns>
                             <!-- Icon: fixed left width -->
@@ -124,6 +124,7 @@
                                     </Style>
                                 </DataGridTextColumn.ElementStyle>
                             </DataGridTextColumn>
+
                         </DataGrid.Columns>
                     </DataGrid>
                 </Grid>

@@ -143,130 +143,179 @@ namespace FocusTrack
 
         public class HourlyUsage
         {
+            public DateTime Date { get; set; }
             public int Hour { get; set; }  // 0-23
             public int TotalSeconds { get; set; }
         }
 
-        public static async Task<List<HourlyUsage>> GetHourlyUsageAsync(DateTime? start, DateTime? end)
+        public static async Task<List<HourlyUsage>> GetHourlyUsageAsync(DateTime start, DateTime end)
         {
-            var result = new List<HourlyUsage>();
+            var result = new int[24]; // Index = hour 0-23
 
-            using (var conn = new System.Data.SQLite.SQLiteConnection(Database.ConnString))
+            using (var conn = new SQLiteConnection(Database.ConnString))
             {
                 await conn.OpenAsync();
                 using (var cmd = conn.CreateCommand())
                 {
-                    if (start == null || end == null)
-                    {
-                        cmd.CommandText = @"
-                    SELECT strftime('%H', StartTime) as Hour,
-                           SUM(DurationSeconds) as TotalDuration
-                    FROM AppUsage
-                    GROUP BY Hour
-                    ORDER BY Hour";
-                    }
-                    else
-                    {
+                    cmd.CommandText = @"
+                SELECT StartTime, DurationSeconds
+                FROM AppUsage
+                WHERE StartTime <= @end AND EndTime >= @start";
+                    cmd.Parameters.AddWithValue("@start", start);
+                    cmd.Parameters.AddWithValue("@end", end);
 
-                        cmd.CommandText = @"
-                        SELECT strftime('%H', StartTime) as Hour,
-                               SUM(DurationSeconds) as TotalDuration
-                        FROM AppUsage
-                        WHERE StartTime BETWEEN @start AND @end
-                        GROUP BY Hour
-                        ORDER BY Hour";
-
-                        cmd.Parameters.AddWithValue("@start", start);
-                        cmd.Parameters.AddWithValue("@end", end);
-                    }
                     using (var reader = await cmd.ExecuteReaderAsync())
                     {
                         while (await reader.ReadAsync())
                         {
-                            result.Add(new HourlyUsage
+                            var startTime = reader.GetDateTime(0);
+                            var duration = reader.GetInt32(1);
+                            var endTime = startTime.AddSeconds(duration);
+
+                            // Clip to requested range
+                            if (startTime < start) startTime = start;
+                            if (endTime > end) endTime = end;
+
+                            var tempStart = startTime;
+
+                            while (tempStart < endTime)
                             {
-                                Hour = int.Parse(reader.GetString(0)),
-                                TotalSeconds = reader.GetInt32(1)
-                            });
+                                int hour = tempStart.Hour;
+
+                                // End of this hour
+                                var nextHour = new DateTime(tempStart.Year, tempStart.Month, tempStart.Day, hour, 0, 0).AddHours(1);
+                                var chunkEnd = nextHour < endTime ? nextHour : endTime;
+
+                                var seconds = (chunkEnd - tempStart).TotalSeconds;
+                                result[hour] += (int)seconds;
+
+                                tempStart = chunkEnd;
+                            }
                         }
                     }
                 }
             }
 
-            // --- Ensure all 24 hours exist ---
-            var fullDay = Enumerable.Range(0, 24)
-                .Select(h =>
+            // Return total usage per hour-of-day
+            return Enumerable.Range(0, 24)
+                .Select(h => new HourlyUsage
                 {
-                    var existing = result.FirstOrDefault(r => r.Hour == h);
-                    return new HourlyUsage
-                    {
-                        Hour = h,
-                        TotalSeconds = existing != null ? existing.TotalSeconds : 0
-                    };
+                    Hour = h,
+                    TotalSeconds = result[h]
                 })
                 .ToList();
-
-
-            return fullDay;
         }
 
+
+
+
+        // Internal class to hold raw data
+        private class AppUsageRaw
+        {
+            public string AppName { get; set; }
+            public string ExePath { get; set; }
+            public byte[] AppIcon { get; set; }
+            public DateTime StartTime { get; set; }
+            public DateTime EndTime { get; set; }
+        }
 
         public static async Task<List<AppUsage>> GetAllAppUsageAsync(DateTime? start, DateTime? end)
         {
-            var result = new List<AppUsage>();
-            using (var conn = new SQLiteConnection(ConnString))
+            var rawData = new List<AppUsageRaw>();
+
+            try
             {
-                await conn.OpenAsync();
-                using (var cmd = conn.CreateCommand())
+                using (var conn = new SQLiteConnection(ConnString))
                 {
+                    await conn.OpenAsync();
 
-                    if (start == null || end == null)
+                    using (var cmd = conn.CreateCommand())
                     {
                         cmd.CommandText = @"
-                        SELECT strftime('%H', StartTime) as Hour,
-                           SUM(DurationSeconds) as TotalDuration, AppName, ExePath, AppIcon
-                            FROM AppUsage 
-                            GROUP BY AppName
-                            ORDER BY TotalDuration DESC
-                            ";
-                    }
-                    else {
-                        cmd.CommandText = @"
-                       SELECT strftime('%H', StartTime) as Hour,
-                               SUM(DurationSeconds) as TotalDuration, AppName, ExePath, AppIcon
-                        FROM AppUsage
-                        WHERE StartTime BETWEEN @start AND @end
-                        GROUP BY AppName
-                        ORDER BY TotalDuration DESC;
-                        ";
+                    SELECT AppName, ExePath, AppIcon, StartTime, EndTime
+                    FROM AppUsage
+                    WHERE (@start IS NULL OR EndTime >= @start) AND (@end IS NULL OR StartTime <= @end)
+                    ORDER BY StartTime;
+                ";
 
-                        cmd.Parameters.AddWithValue("@start", start);
-                        cmd.Parameters.AddWithValue("@end", end);
-                    }
-        
-                    using (var reader = await cmd.ExecuteReaderAsync())
-                    {
-                        while (await reader.ReadAsync())
+                        cmd.Parameters.AddWithValue("@start", (object)start ?? DBNull.Value);
+                        cmd.Parameters.AddWithValue("@end", (object)end ?? DBNull.Value);
+
+                        using (var reader = await cmd.ExecuteReaderAsync())
                         {
-                            result.Add(new AppUsage
+                            while (await reader.ReadAsync())
                             {
-                                AppName = reader["AppName"].ToString(),
-                                Duration = TimeSpan.FromSeconds(Convert.ToInt32(reader["TotalDuration"])),
-                                ExePath = reader["ExePath"] as string,
-                                AppIcon = reader["AppIcon"] as byte[]
-                            });
+                                if (DateTime.TryParse(reader["StartTime"].ToString(), out var startTime) &&
+                                    DateTime.TryParse(reader["EndTime"].ToString(), out var endTime) &&
+                                    endTime > startTime)  // Sanity check
+                                {
+                                    rawData.Add(new AppUsageRaw
+                                    {
+                                        AppName = reader["AppName"].ToString(),
+                                        ExePath = reader["ExePath"] as string,
+                                        AppIcon = reader["AppIcon"] as byte[],
+                                        StartTime = DateTime.SpecifyKind(startTime, DateTimeKind.Utc),
+                                        EndTime = DateTime.SpecifyKind(endTime, DateTimeKind.Utc)
+                                    });
+                                }
+                            }
                         }
-
                     }
                 }
+
+                // Split sessions across dates
+                var splitData = new List<AppUsage>();
+                foreach (var session in rawData)
+                {
+                    var current = session.StartTime;
+                    while (current.Date <= session.EndTime.Date)
+                    {
+                        var dayEnd = current.Date.AddDays(1);
+                        var segmentEnd = session.EndTime < dayEnd ? session.EndTime : dayEnd;
+                        var duration = segmentEnd - current;
+
+                        if (duration.TotalSeconds <= 0)
+                            break;  // Prevent infinite loop or invalid data
+
+                        splitData.Add(new AppUsage
+                        {
+                            AppName = session.AppName,
+                            ExePath = session.ExePath,
+                            AppIcon = session.AppIcon,
+                            Date = current.Date,
+                            Duration = duration
+                        });
+
+                        current = segmentEnd;
+                    }
+                }
+
+                // Group by AppName + Date
+                var groupedData = splitData
+                    .GroupBy(x => new { x.AppName, x.ExePath })
+                    .Select(g => new AppUsage
+                    {
+                        AppName = g.Key.AppName,
+                        ExePath = g.Key.ExePath,
+                        AppIcon = g.First().AppIcon,
+                        Duration = TimeSpan.FromSeconds(g.Sum(x => x.Duration.TotalSeconds))
+                    })
+                    .OrderByDescending(x => x.Duration)
+                    .ToList();
+
+                return groupedData;
             }
-            
-            
-            return result;
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error in GetAllAppUsageAsync: {ex.Message}");
+                return new List<AppUsage>();  // Return empty list on failure
+            }
         }
 
 
-     
+
+
+
 
 
 

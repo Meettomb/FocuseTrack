@@ -96,19 +96,9 @@ namespace FocusTrack
             this.DataContext = this;
 
             StartupHelper.AddToStartup();
-
-            
+       
         }
 
-
-
-      
-
-        
-
-
-
-   
 
         // For dragging the window
         private void Window_MouseDown(object sender, MouseButtonEventArgs e)
