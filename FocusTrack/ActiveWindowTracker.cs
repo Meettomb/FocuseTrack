@@ -108,6 +108,15 @@ namespace FocusTrack
             string windowTitle = sb.ToString();
             Debug.WriteLine($"[GetActiveWindowInfo] Window Title: {windowTitle}");
 
+            // === Add this block here ===
+            if (proc.ProcessName.Equals("explorer", StringComparison.OrdinalIgnoreCase))
+            {
+                // Skip if no window title (user not actively using file explorer)
+                if (string.IsNullOrWhiteSpace(windowTitle) || windowTitle == "Program Manager")
+                    return ("", "", "", null);
+            }
+            
+
 
             // Extract app icon
             byte[] appIcon = IconHelper.GetIconBytes(exePath);

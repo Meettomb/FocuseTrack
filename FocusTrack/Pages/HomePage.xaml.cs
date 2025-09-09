@@ -310,8 +310,6 @@ namespace FocusTrack.Pages
                 foreach (var item in allData)
                     AppUsages.Add(item);
 
-                if (AppUsageGrid != null && AppUsageGrid.ItemsSource == null)
-                    AppUsageGrid.ItemsSource = AppUsages;
             });
         }
 
