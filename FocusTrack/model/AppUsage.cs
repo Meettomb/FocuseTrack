@@ -17,7 +17,7 @@ namespace FocusTrack.Model
         public byte[] AppIcon { get; set; } 
         public string ExePath { get; set; }
         public DateTime Date { get; set; }
-
+        public TimeSpan TotalUsage { get; set; }
         public int DurationSeconds => (int)Duration.TotalSeconds; // Helper property for charts
     }
 }

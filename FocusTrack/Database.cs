@@ -146,6 +146,8 @@ namespace FocusTrack
             public DateTime Date { get; set; }
             public int Hour { get; set; }  // 0-23
             public int TotalSeconds { get; set; }
+
+            public double TotalMinutes => TotalSeconds / 60.0; // Convenience property
         }
 
         public static async Task<List<HourlyUsage>> GetHourlyUsageAsync(DateTime start, DateTime end)
@@ -312,6 +314,8 @@ namespace FocusTrack
             }
         }
 
+
+        
 
 
 

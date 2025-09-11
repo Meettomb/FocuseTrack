@@ -102,6 +102,7 @@ namespace FocusTrack.Pages
             {
                 await LoadDefaultGraph();    // load chart
                 await LoadDefaultAppUsage(); // load grid data safely
+               
             };
 
             StartupHelper.AddToStartup();
@@ -174,32 +175,39 @@ namespace FocusTrack.Pages
 
                 List<HourlyUsage> data = null;
                 List<HourlyUsage> Listdata = null;
+                DateTime start = DateTime.Today;
 
                 switch (range)
                 {
                     case "today":
                         data = await Database.GetHourlyUsageAsync(DateTime.Today, DateTime.Now);
                         await LoadAllAppUsageAsync(DateTime.Today, DateTime.Now);
+                       
                         break;
 
                     case "7d":
-                        data = await Database.GetHourlyUsageAsync(DateTime.Now.AddDays(-7), DateTime.Now);
-                        await LoadAllAppUsageAsync(DateTime.Now.AddDays(-7), DateTime.Now);
+                        var start7d = DateTime.Today.AddDays(-7);
+                        data = await Database.GetHourlyUsageAsync(start7d, DateTime.Now);
+                        await LoadAllAppUsageAsync(start7d, DateTime.Now);
                         break;
 
+
                     case "1m":
-                        data = await Database.GetHourlyUsageAsync(DateTime.Now.AddMonths(-1), DateTime.Now);
-                        await LoadAllAppUsageAsync(DateTime.Now.AddMonths(-1), DateTime.Now);
+                        start = DateTime.Today.AddMonths(-1);
+                        data = await Database.GetHourlyUsageAsync(start, DateTime.Now);
+                        await LoadAllAppUsageAsync(start, DateTime.Now);
                         break;
 
                     case "3m":
-                        data = await Database.GetHourlyUsageAsync(DateTime.Now.AddMonths(-3), DateTime.Now);
-                        await LoadAllAppUsageAsync(DateTime.Now.AddMonths(-3), DateTime.Now);
+                        start = DateTime.Today.AddMonths(-3);
+                        data = await Database.GetHourlyUsageAsync(start, DateTime.Now);
+                        await LoadAllAppUsageAsync(start, DateTime.Now);
                         break;
 
                     case "overall":
-                        data = await Database.GetHourlyUsageAsync(DateTime.MinValue, DateTime.Now);
-                        await LoadAllAppUsageAsync(null, null);
+                        start = DateTime.MinValue;
+                        data = await Database.GetHourlyUsageAsync(start, DateTime.Now);
+                        await LoadAllAppUsageAsync(start, DateTime.Now);
                         break;
 
                 }
@@ -209,6 +217,9 @@ namespace FocusTrack.Pages
                 }
             }
         }
+        
+        
+        
         private void LoadGraphData(List<HourlyUsage> data)
         {
             if (UsageChart == null) return;
@@ -281,13 +292,6 @@ namespace FocusTrack.Pages
             };
         }
 
-
-
-
-
-
-
-
         private async Task LoadDefaultGraph()
         {
             var todayData = await Database.GetHourlyUsageAsync(DateTime.Today, DateTime.Now);
@@ -310,13 +314,31 @@ namespace FocusTrack.Pages
                 foreach (var item in allData)
                     AppUsages.Add(item);
 
+                if (AppUsageGrid != null && AppUsageGrid.ItemsSource == null)
+                    AppUsageGrid.ItemsSource = AppUsages;
+
+                // Calculate total usage time from displayed items
+                var totalSeconds = AppUsages.Sum(x => x.Duration.TotalSeconds);
+                var totalTime = TimeSpan.FromSeconds(totalSeconds);
+
+                TotalUsageTextBlock.Text = $"{(int)totalTime.TotalHours:D2}h {totalTime.Minutes:D2}m {totalTime.Seconds:D2}s";
             });
         }
+
 
         private async Task LoadDefaultAppUsage()
         {
             await LoadAllAppUsageAsync(DateTime.Today, DateTime.Now);
         }
+
+
+
+        // Load Total Usage Time
+
+        
+
+
+
 
         // Previous Day Button
         private void PrevDayButton_Click(object sender, RoutedEventArgs e)
