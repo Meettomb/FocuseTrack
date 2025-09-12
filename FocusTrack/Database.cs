@@ -294,16 +294,27 @@ namespace FocusTrack
 
                 // Group by AppName + Date
                 var groupedData = splitData
-                    .GroupBy(x => new { x.AppName, x.ExePath })
-                    .Select(g => new AppUsage
+                .GroupBy(x => x.ExePath)
+                .Select(g =>
+                {
+                    var newestRecord = g.OrderByDescending(x => x.Date).ThenByDescending(x => x.Duration).First();
+
+                    string friendlyAppName = AppFriendlyNames.ContainsKey(newestRecord.AppName)
+                        ? AppFriendlyNames[newestRecord.AppName]
+                        : newestRecord.AppName;
+
+                    return new AppUsage
                     {
-                        AppName = g.Key.AppName,
-                        ExePath = g.Key.ExePath,
-                        AppIcon = g.First().AppIcon,
+                        AppName = friendlyAppName,
+                        ExePath = g.Key,
+                        AppIcon = newestRecord.AppIcon,
                         Duration = TimeSpan.FromSeconds(g.Sum(x => x.Duration.TotalSeconds))
-                    })
-                    .OrderByDescending(x => x.Duration)
-                    .ToList();
+                    };
+                })
+                .OrderByDescending(x => x.Duration)
+                .ToList();
+
+
 
                 return groupedData;
             }
@@ -315,7 +326,46 @@ namespace FocusTrack
         }
 
 
-        
+        private static readonly Dictionary<string, string> AppFriendlyNames = new Dictionary<string, string>()
+        {
+             { "chrome", "Google Chrome" },
+                        { "msedge", "Microsoft Edge" },
+                        { "firefox", "Mozilla Firefox" },
+                        { "opera", "Opera Browser" },
+                        { "iexplore", "Internet Explorer" },
+                        { "code", "Visual Studio Code" },
+                        { "devenv", "Visual Studio" },
+                        { "sublime_text", "Sublime Text" },
+                        { "pycharm", "PyCharm" },
+                        { "webstorm", "WebStorm" },
+                        { "androidstudio", "Android Studio" },
+                        { "eclipse", "Eclipse IDE" },
+                        { "intellij", "IntelliJ IDEA" },
+                        { "notepad", "Notepad" },
+                        { "notepad++", "Notepad++" },
+                        { "winword", "Microsoft Word" },
+                        { "excel", "Microsoft Excel" },
+                        { "powerpnt", "Microsoft PowerPoint" },
+                        { "outlook", "Microsoft Outlook" },
+                        { "onenote", "Microsoft OneNote" },
+                        { "access", "Microsoft Access" },
+                        { "teams", "Microsoft Teams" },
+                        { "zoom", "Zoom" },
+                        { "slack", "Slack" },
+                        { "discord", "Discord" },
+                        { "skype", "Skype" },
+                        { "telegram", "Telegram" },
+                        { "whatsapp", "WhatsApp" },
+                        { "spotify", "Spotify" },
+                        { "vlc", "VLC Media Player" },
+                        { "wmplayer", "Windows Media Player" },
+                        { "itunes", "iTunes" },
+                        { "foobar2000", "Foobar2000" },
+                        { "studio64", "Android Studio" }
+        };
+
+
+
 
 
 

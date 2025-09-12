@@ -275,7 +275,8 @@ namespace FocusTrack
                 { "vlc", "VLC Media Player" },
                 { "wmplayer", "Windows Media Player" },
                 { "itunes", "iTunes" },
-                { "foobar2000", "Foobar2000" }
+                { "foobar2000", "Foobar2000" },
+                { "studio64", "Android Studio" }
             };
 
             if (appNameMap.TryGetValue(processName, out string friendlyName))
