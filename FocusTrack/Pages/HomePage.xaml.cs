@@ -333,10 +333,39 @@ namespace FocusTrack.Pages
 
 
 
-        // Load Total Usage Time
+        private async Task LoadAppDetailResultsByAppName(
+    string appName, DateTime date, DateTime? start = null, DateTime? end = null)
+        {
+            var groupedAppUsages = await Database.GetAppDetailResultsByAppName(appName, date, start, end);
 
-        
+            if (!groupedAppUsages.Any())
+            {
+                return;
+            }
 
+            var sb = new StringBuilder();
+            foreach (var item in groupedAppUsages)
+            {
+                sb.AppendLine($"WindowTitle: {item.WindowTitle}");
+                sb.AppendLine($"StartTime: {item.StartTime}");
+                sb.AppendLine($"EndTime: {item.EndTime}");
+                sb.AppendLine($"Duration: {item.Duration}");
+                sb.AppendLine("----------------------------------");
+            }
+
+            MessageBox.Show(sb.ToString(), $"Usage Details for {appName}");
+        }
+
+
+
+        private async void Grid_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        {
+            if (sender is Grid grid && grid.Tag is AppUsage clickedInfo)
+            {
+                // Uses SelectedDate from your DatePicker/selector
+                await LoadAppDetailResultsByAppName(clickedInfo.AppName, SelectedDate);
+            }
+        }
 
 
 
@@ -366,7 +395,11 @@ namespace FocusTrack.Pages
             LoadGraphData(hourlyData);
 
             await LoadAllAppUsageAsync(start, end);
+            
+            await LoadAppDetailResultsByAppName(null, start, end);
         }
+
+      
 
 
 

@@ -1,8 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using static FocusTrack.Database;
 
 namespace FocusTrack.Model
 {
@@ -16,8 +18,12 @@ namespace FocusTrack.Model
         public TimeSpan Duration { get; set; }
         public byte[] AppIcon { get; set; } 
         public string ExePath { get; set; }
+
+
+        // Others
         public DateTime Date { get; set; }
         public TimeSpan TotalUsage { get; set; }
         public int DurationSeconds => (int)Duration.TotalSeconds; // Helper property for charts
+
     }
 }

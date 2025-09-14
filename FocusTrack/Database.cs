@@ -9,6 +9,7 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using Xceed.Wpf.Toolkit.Primitives;
+using static SkiaSharp.HarfBuzz.SKShaper;
 
 namespace FocusTrack
 {
@@ -106,40 +107,6 @@ namespace FocusTrack
             }
         }
 
-
-        public static async Task<List<AppUsage>> GetAllDataAsync()
-        {
-            var result = new List<AppUsage>();
-
-            using (var connection = new SQLiteConnection(ConnString))
-            {
-                await connection.OpenAsync();
-
-                string query = @"SELECT Id, AppName, WindowTitle, StartTime, EndTime, DurationSeconds, AppIcon, ExePath
-                         FROM AppUsage ORDER BY StartTime DESC";
-
-                using (var command = new SQLiteCommand(query, connection))
-                using (var reader = await command.ExecuteReaderAsync())
-                {
-                    while (await reader.ReadAsync())
-                    {
-                        result.Add(new AppUsage
-                        {
-                            Id = reader.GetInt32(0),
-                            AppName = reader.GetString(1),
-                            WindowTitle = reader.GetString(2),
-                            StartTime = DateTime.TryParse(reader.GetString(3), out var st) ? st : DateTime.MinValue,
-                            EndTime = DateTime.TryParse(reader.GetString(4), out var et) ? et : DateTime.MinValue,
-                            Duration = TimeSpan.FromSeconds(reader.GetInt32(5)),
-                            AppIcon = reader.IsDBNull(6) ? null : reader.GetFieldValue<byte[]>(6),
-                            ExePath = reader.IsDBNull(7) ? null : reader.GetString(7)
-                        });
-                    }
-                }
-            }
-
-            return result;
-        }
 
         public class HourlyUsage
         {
@@ -365,11 +332,107 @@ namespace FocusTrack
         };
 
 
+        public static async Task<List<AppUsage>> GetAppDetailResultsByAppName(
+    string appName, DateTime date, DateTime? start = null, DateTime? end = null)
+        {
+            var rawData = new List<AppUsage>();
 
+            try
+            {
+                using (var conn = new SQLiteConnection(ConnString))
+                {
+                    await conn.OpenAsync();
 
+                    using (var cmd = conn.CreateCommand())
+                    {
+                        // Default to whole day if start/end not provided
+                        if (!start.HasValue) start = date.Date;
+                        if (!end.HasValue) end = date.Date.AddDays(1).AddTicks(-1);
 
+                        cmd.CommandText = @"
+                    SELECT WindowTitle, StartTime, EndTime
+                    FROM AppUsage
+                    WHERE LOWER(AppName) = LOWER(@appName)
+                      AND EndTime >= @start AND StartTime <= @end
+                    ORDER BY StartTime";
 
+                        cmd.Parameters.AddWithValue("@appName", appName);
+                        cmd.Parameters.AddWithValue("@start", start);
+                        cmd.Parameters.AddWithValue("@end", end);
 
+                        using (var reader = await cmd.ExecuteReaderAsync())
+                        {
+                            while (await reader.ReadAsync())
+                            {
+                                if (DateTime.TryParse(reader["StartTime"].ToString(), out var startTime) &&
+                                    DateTime.TryParse(reader["EndTime"].ToString(), out var endTime))
+                                {
+                                    rawData.Add(new AppUsage
+                                    {
+                                        WindowTitle = reader["WindowTitle"].ToString(),
+                                        StartTime = DateTime.SpecifyKind(startTime, DateTimeKind.Utc),
+                                        EndTime = DateTime.SpecifyKind(endTime, DateTimeKind.Utc)
+                                    });
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Split sessions across days
+                var splitData = new List<AppUsage>();
+                foreach (var session in rawData)
+                {
+                    var current = session.StartTime;
+                    while (current.Date <= session.EndTime.Date)
+                    {
+                        var dayEnd = current.Date.AddDays(1);
+                        var segmentEnd = session.EndTime < dayEnd ? session.EndTime : dayEnd;
+                        var duration = segmentEnd - current;
+
+                        if (duration.TotalSeconds <= 0) break;
+
+                        splitData.Add(new AppUsage
+                        {
+                            WindowTitle = session.WindowTitle,
+                            StartTime = current,
+                            EndTime = segmentEnd,
+                            Duration = duration
+                        });
+
+                        current = segmentEnd;
+                    }
+                }
+
+                // Group by WindowTitle and sum durations
+                var groupedData = splitData
+                    .Where(x => x.StartTime.Date >= start.Value.Date && x.EndTime.Date <= end.Value.Date)
+                    .GroupBy(x => x.WindowTitle)
+                    .Select(g =>
+                    {
+                        var minStart = g.Min(x => x.StartTime);
+                        var maxEnd = g.Max(x => x.EndTime);
+                        var totalDuration = TimeSpan.FromSeconds(g.Sum(x => x.Duration.TotalSeconds));
+
+                        return new AppUsage
+                        {
+                            WindowTitle = g.Key,
+                            StartTime = minStart,
+                            EndTime = maxEnd,
+                            Duration = totalDuration
+                        };
+                    })
+                    .OrderByDescending(x => x.Duration)
+                    .ToList();
+
+                return groupedData;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error in GetAppDetailResultsByAppName: {ex.Message}");
+                return new List<AppUsage>();
+            }
+        }
 
 
 
