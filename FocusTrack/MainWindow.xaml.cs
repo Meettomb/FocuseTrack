@@ -210,6 +210,8 @@ namespace FocusTrack
             MainFrame.Navigate(new AppOpenCountPage());
         }
 
+       
+
 
 
 

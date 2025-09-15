@@ -235,6 +235,10 @@
       <DependentUpon>MainWindow.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
+    <Page Include="Pages\AppDetailPage.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
     <Page Include="Pages\AppOpenCountPage.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
@@ -274,6 +278,9 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="model\AppUsage.cs" />
+    <Compile Include="Pages\AppDetailPage.xaml.cs">
+      <DependentUpon>AppDetailPage.xaml</DependentUpon>
+    </Compile>
     <Compile Include="Pages\AppOpenCountPage.xaml.cs">
       <DependentUpon>AppOpenCountPage.xaml</DependentUpon>
     </Compile>

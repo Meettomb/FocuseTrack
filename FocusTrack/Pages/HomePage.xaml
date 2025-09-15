@@ -99,46 +99,51 @@
                 <ItemsControl x:Name="AppUsageGrid" ItemsSource="{Binding AppUsages}" Grid.Row="3" Margin="10 0 10 10">
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>
-                            <Grid MouseLeftButtonDown="Grid_MouseLeftButtonDown"
+                            <Border Background="#222"
+                                Margin="10 5"
+                                Padding="1"
+                                CornerRadius="5">
+                                <Grid MouseLeftButtonDown="Grid_MouseLeftButtonDown"
                                 Background="#222" 
                                 Margin="0 5 0 0"
                                 VerticalAlignment="Center"
                                 Height="50"
                                 Tag="{Binding}"
                                 >
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="Auto"/>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="Auto"/>
-                                    <ColumnDefinition Width="Auto"/>
-                                </Grid.ColumnDefinitions>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
 
-                                <Image Grid.Column="0" Width="35" Height="35" Margin="20 0 0 0"
+                                    <Image Grid.Column="0" Width="35" Height="35" Margin="20 0 0 0"
                                     Source="{Binding AppIcon, Converter={StaticResource ByteToImageConverter}}"/>
-                                <TextBlock Grid.Column="1" Text="{Binding AppName}" 
+                                    <TextBlock Grid.Column="1" Text="{Binding AppName}" 
                                            Margin="20,0" 
                                            Foreground="White"
                                            VerticalAlignment="Center"
                                            FontSize="15"
                                            />
-                                <TextBlock Grid.Column="2" Text="{Binding Duration}" 
+                                    <TextBlock Grid.Column="2" Text="{Binding Duration}" 
                                            Margin="20,0" 
                                            Foreground="White"
                                            VerticalAlignment="Center"
                                            FontSize="15"
                                            />
 
-                        
-                                <materialDesign:PackIcon Kind="ChevronDown"
+
+                                    <materialDesign:PackIcon Kind="ChevronRight"
                                         VerticalAlignment="Center"
                                         HorizontalAlignment="Center"
                                         Width="22"
                                         Height="22"
                                         Grid.Column="3"
                                         Foreground="White"
-                                        Margin="0 0 15 0"/> 
+                                        Margin="0 0 15 0"/>
 
-                            </Grid>
+                                </Grid>
+                            </Border>
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
