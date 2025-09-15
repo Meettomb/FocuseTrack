@@ -435,7 +435,7 @@ namespace FocusTrack
 
                 // Group by WindowTitle and sum durations
                 var groupedData = splitData
-                    .Where(x => x.StartTime.Date >= start.Value.Date && x.EndTime.Date <= end.Value.Date)
+                    .Where(x => x.EndTime > start.Value && x.StartTime < end.Value)
                     .GroupBy(x => x.WindowTitle)
                     .Select(g =>
                     {
