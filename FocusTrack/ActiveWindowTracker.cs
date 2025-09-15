@@ -91,7 +91,7 @@ namespace FocusTrack
             }
             catch
             {
-                Debug.WriteLine($"[GetActiveWindowInfo] Failed to get process for PID {pid}");
+                //Debug.WriteLine($"[GetActiveWindowInfo] Failed to get process for PID {pid}");
                 return ("Unknown", "", "", null);
             }
 
@@ -100,13 +100,13 @@ namespace FocusTrack
                 return ("", "", "", null);
 
             string exePath = GetProcessPath(proc);
-            Debug.WriteLine($"[GetActiveWindowInfo] Process: {proc.ProcessName}, Path: {exePath}");
+            //Debug.WriteLine($"[GetActiveWindowInfo] Process: {proc.ProcessName}, Path: {exePath}");
 
             // Get window title
             var sb = new StringBuilder(256);
             GetWindowText(hwnd, sb, sb.Capacity);
             string windowTitle = sb.ToString();
-            Debug.WriteLine($"[GetActiveWindowInfo] Window Title: {windowTitle}");
+            //Debug.WriteLine($"[GetActiveWindowInfo] Window Title: {windowTitle}");
 
             // === Add this block here ===
             if (proc.ProcessName.Equals("explorer", StringComparison.OrdinalIgnoreCase))
@@ -120,10 +120,11 @@ namespace FocusTrack
 
             // Extract app icon
             byte[] appIcon = IconHelper.GetIconBytes(exePath);
-            if (appIcon != null && appIcon.Length > 0)
-                Debug.WriteLine($"[GetActiveWindowInfo] Extracted icon for {exePath}, size = {appIcon.Length} bytes");
+            if (appIcon != null && appIcon.Length > 0) { 
+                //Debug.WriteLine($"[GetActiveWindowInfo] Extracted icon for {exePath}, size = {appIcon.Length} bytes");
+            }
             else
-                Debug.WriteLine($"[GetActiveWindowInfo] Failed to extract icon for {exePath}");
+                //Debug.WriteLine($"[GetActiveWindowInfo] Failed to extract icon for {exePath}");
 
             // Handle UWP apps running under ApplicationFrameHost
             if (proc.ProcessName.Equals("ApplicationFrameHost", StringComparison.OrdinalIgnoreCase))
@@ -145,8 +146,9 @@ namespace FocusTrack
                             if (appIcon == null || appIcon.Length == 0 || exePath.EndsWith("ApplicationFrameHost.exe", StringComparison.OrdinalIgnoreCase))
                             {
                                 appIcon = GetFallbackUwpIcon(windowTitle);
-                                if (appIcon != null)
-                                    Debug.WriteLine($"Used fallback icon for {kvp.Value.FriendlyName}, size={appIcon.Length} bytes");
+                                if (appIcon != null) { 
+                                    //Debug.WriteLine($"Used fallback icon for {kvp.Value.FriendlyName}, size={appIcon.Length} bytes");
+                                }
                             }
 
                             return (kvp.Value.FriendlyName, windowTitle, exePath, appIcon);
@@ -157,7 +159,7 @@ namespace FocusTrack
 
 
             string appName = GetFriendlyAppName(proc, proc.ProcessName);
-            Debug.WriteLine($"[GetActiveWindowInfo] Final app name: {appName}");
+            //Debug.WriteLine($"[GetActiveWindowInfo] Final app name: {appName}");
 
             return (appName, windowTitle, exePath, appIcon);
         }

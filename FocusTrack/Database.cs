@@ -205,7 +205,7 @@ namespace FocusTrack
                     FROM AppUsage
                     WHERE (@start IS NULL OR EndTime >= @start) AND (@end IS NULL OR StartTime <= @end)
                     ORDER BY StartTime;
-                ";
+                    ";
 
                         cmd.Parameters.AddWithValue("@start", (object)start ?? DBNull.Value);
                         cmd.Parameters.AddWithValue("@end", (object)end ?? DBNull.Value);
@@ -232,7 +232,16 @@ namespace FocusTrack
                     }
                 }
 
-                // Split sessions across dates
+                // 1️⃣ Debug: Raw data
+                System.Diagnostics.Debug.WriteLine("=== Raw Data ===");
+                foreach (var session in rawData)
+                {
+                    System.Diagnostics.Debug.WriteLine(
+                        $"Raw -> App: {session.AppName}, Start: {session.StartTime}, End: {session.EndTime}");
+                }
+
+                // 2️⃣ Split sessions across dates
+                // 1️⃣ Split sessions across dates
                 var splitData = new List<AppUsage>();
                 foreach (var session in rawData)
                 {
@@ -244,7 +253,7 @@ namespace FocusTrack
                         var duration = segmentEnd - current;
 
                         if (duration.TotalSeconds <= 0)
-                            break;  // Prevent infinite loop or invalid data
+                            break;  // Prevent invalid data
 
                         splitData.Add(new AppUsage
                         {
@@ -259,31 +268,51 @@ namespace FocusTrack
                     }
                 }
 
-                // Group by AppName + Date
+                // 2️⃣ Filter splitData to only include the requested date range
+                splitData = splitData
+                    .Where(x => (!start.HasValue || x.Date >= start.Value.Date) &&
+                                (!end.HasValue || x.Date <= end.Value.Date))
+                    .ToList();
+
+                // 3️⃣ Group by AppName + Date
                 var groupedData = splitData
-                .GroupBy(x => x.ExePath)
-                .Select(g =>
-                {
-                    var newestRecord = g.OrderByDescending(x => x.Date).ThenByDescending(x => x.Duration).First();
-
-                    string friendlyAppName = AppFriendlyNames.ContainsKey(newestRecord.AppName)
-                        ? AppFriendlyNames[newestRecord.AppName]
-                        : newestRecord.AppName;
-
-                    return new AppUsage
+                    .GroupBy(x => new { x.AppName, x.Date })  // Use AppName + Date as key
+                    .Select(g =>
                     {
-                        AppName = friendlyAppName,
-                        ExePath = g.Key,
-                        AppIcon = newestRecord.AppIcon,
-                        Duration = TimeSpan.FromSeconds(g.Sum(x => x.Duration.TotalSeconds))
-                    };
-                })
-                .OrderByDescending(x => x.Duration)
-                .ToList();
+                        var newestRecord = g.OrderByDescending(x => x.Date).ThenByDescending(x => x.Duration).First();
+
+                        string friendlyAppName = AppFriendlyNames.ContainsKey(newestRecord.AppName)
+                            ? AppFriendlyNames[newestRecord.AppName]
+                            : newestRecord.AppName;
+
+                        var totalDuration = TimeSpan.FromSeconds(g.Sum(x => x.Duration.TotalSeconds));
+
+                        // Debug
+                        System.Diagnostics.Debug.WriteLine($"[Grouped] Date: {g.Key.Date:dd-MM-yyyy}, App: {friendlyAppName}, TotalDuration: {totalDuration}");
+
+                        return new AppUsage
+                        {
+                            AppName = friendlyAppName,
+                            ExePath = newestRecord.ExePath,
+                            AppIcon = newestRecord.AppIcon,
+                            Date = g.Key.Date,
+                            Duration = totalDuration
+                        };
+                    })
+                    .OrderByDescending(x => x.Duration)
+                    .ToList();
 
 
+                // 4️⃣ Debug: Final list that will go to UI
+                System.Diagnostics.Debug.WriteLine("=== Final Data to UI ===");
+                foreach (var item in groupedData)
+                {
+                    System.Diagnostics.Debug.WriteLine(
+                        $"UI -> App: {item.AppName}, Duration: {item.Duration}");
+                }
 
                 return groupedData;
+
             }
             catch (Exception ex)
             {
