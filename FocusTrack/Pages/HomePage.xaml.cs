@@ -193,43 +193,46 @@ namespace FocusTrack.Pages
                 string range = selected.Tag.ToString();
                 List<HourlyUsage> data = null;
 
+                DateTime today = DateTime.Today;
+                DateTime now = DateTime.Now;
+                DateTime rangeStart, rangeEnd;
+
                 switch (range)
                 {
                     case "today":
-                        rangeStart = DateTime.Today;
-                        rangeEnd = DateTime.Now;
-                        data = await Database.GetHourlyUsageAsync(rangeStart, rangeEnd);
-                        await LoadAllAppUsageAsync(rangeStart, rangeEnd);
+                        rangeStart = today;
+                        rangeEnd = now;
                         break;
 
                     case "7d":
-                        rangeStart = DateTime.Today.AddDays(-7);
-                        rangeEnd = DateTime.Now;
-                        data = await Database.GetHourlyUsageAsync(rangeStart, rangeEnd);
-                        await LoadAllAppUsageAsync(rangeStart, rangeEnd);
+                        rangeStart = today.AddDays(-6); // last 7 days including today
+                        rangeEnd = now;
                         break;
 
                     case "1m":
-                        rangeStart = DateTime.Today.AddMonths(-1);
-                        rangeEnd = DateTime.Now;
-                        data = await Database.GetHourlyUsageAsync(rangeStart, rangeEnd);
-                        await LoadAllAppUsageAsync(rangeStart, rangeEnd);
+                        rangeStart = today.AddMonths(-1).AddDays(1); // last 1 month including today
+                        rangeEnd = now;
                         break;
 
                     case "3m":
-                        rangeStart = DateTime.Today.AddMonths(-3);
-                        rangeEnd = DateTime.Now;
-                        data = await Database.GetHourlyUsageAsync(rangeStart, rangeEnd);
-                        await LoadAllAppUsageAsync(rangeStart, rangeEnd);
+                        rangeStart = today.AddMonths(-3).AddDays(1); // last 3 months including today
+                        rangeEnd = now;
                         break;
 
                     case "overall":
                         rangeStart = DateTime.MinValue;
-                        rangeEnd = DateTime.Now;
-                        data = await Database.GetHourlyUsageAsync(rangeStart, rangeEnd);
-                        await LoadAllAppUsageAsync(rangeStart, rangeEnd);
+                        rangeEnd = now;
+                        break;
+
+                    default:
+                        rangeStart = today;
+                        rangeEnd = now;
                         break;
                 }
+
+                // Fetch data
+                data = await Database.GetHourlyUsageAsync(rangeStart, rangeEnd);
+                await LoadAllAppUsageAsync(rangeStart, rangeEnd);
 
                 if (data != null)
                 {
@@ -237,6 +240,7 @@ namespace FocusTrack.Pages
                 }
             }
         }
+
 
         private void LoadGraphData(List<HourlyUsage> data)
         {

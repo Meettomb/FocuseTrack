@@ -190,10 +190,10 @@ namespace FocusTrack
 
         public static async Task<List<AppUsage>> GetAllAppUsageAsync(DateTime? start, DateTime? end)
         {
-            var rawData = new List<AppUsageRaw>();
-
             try
             {
+                // 1️⃣ Fetch raw data from database
+                var rawData = new List<AppUsageRaw>();
                 using (var conn = new SQLiteConnection(ConnString))
                 {
                     await conn.OpenAsync();
@@ -205,7 +205,7 @@ namespace FocusTrack
                     FROM AppUsage
                     WHERE (@start IS NULL OR EndTime >= @start) AND (@end IS NULL OR StartTime <= @end)
                     ORDER BY StartTime;
-                    ";
+                ";
 
                         cmd.Parameters.AddWithValue("@start", (object)start ?? DBNull.Value);
                         cmd.Parameters.AddWithValue("@end", (object)end ?? DBNull.Value);
@@ -216,7 +216,7 @@ namespace FocusTrack
                             {
                                 if (DateTime.TryParse(reader["StartTime"].ToString(), out var startTime) &&
                                     DateTime.TryParse(reader["EndTime"].ToString(), out var endTime) &&
-                                    endTime > startTime)  // Sanity check
+                                    endTime > startTime)
                                 {
                                     rawData.Add(new AppUsageRaw
                                     {
@@ -232,28 +232,22 @@ namespace FocusTrack
                     }
                 }
 
-                // 1️⃣ Debug: Raw data
-                System.Diagnostics.Debug.WriteLine("=== Raw Data ===");
-                foreach (var session in rawData)
-                {
-                    System.Diagnostics.Debug.WriteLine(
-                        $"Raw -> App: {session.AppName}, Start: {session.StartTime}, End: {session.EndTime}");
-                }
-
-                // 2️⃣ Split sessions across dates
-                // 1️⃣ Split sessions across dates
+                // 2️⃣ Split sessions that span multiple days efficiently
+                // Use a list of tuples to reduce memory overhead
                 var splitData = new List<AppUsage>();
                 foreach (var session in rawData)
                 {
-                    var current = session.StartTime;
-                    while (current.Date <= session.EndTime.Date)
+                    DateTime current = session.StartTime;
+                    DateTime sessionEnd = session.EndTime;
+
+                    while (current.Date <= sessionEnd.Date)
                     {
-                        var dayEnd = current.Date.AddDays(1);
-                        var segmentEnd = session.EndTime < dayEnd ? session.EndTime : dayEnd;
-                        var duration = segmentEnd - current;
+                        DateTime dayEnd = current.Date.AddDays(1);
+                        DateTime segmentEnd = sessionEnd < dayEnd ? sessionEnd : dayEnd;
+                        TimeSpan duration = segmentEnd - current;
 
                         if (duration.TotalSeconds <= 0)
-                            break;  // Prevent invalid data
+                            break;
 
                         splitData.Add(new AppUsage
                         {
@@ -268,58 +262,62 @@ namespace FocusTrack
                     }
                 }
 
-                // 2️⃣ Filter splitData to only include the requested date range
-                splitData = splitData
-                    .Where(x => (!start.HasValue || x.Date >= start.Value.Date) &&
-                                (!end.HasValue || x.Date <= end.Value.Date))
-                    .ToList();
+                // 3️⃣ Filter only the requested range
+                if (start.HasValue) splitData = splitData.Where(x => x.Date >= start.Value.Date).ToList();
+                if (end.HasValue) splitData = splitData.Where(x => x.Date <= end.Value.Date).ToList();
 
-                // 3️⃣ Group by AppName + Date
-                var groupedData = splitData
-                    .GroupBy(x => new { x.AppName, x.Date })  // Use AppName + Date as key
-                    .Select(g =>
-                    {
-                        var newestRecord = g.OrderByDescending(x => x.Date).ThenByDescending(x => x.Duration).First();
+                // 4️⃣ Determine if single-day or multi-day grouping
+                // Determine if single-day or multi-day grouping
+                IEnumerable<IGrouping<object, AppUsage>> groupedData;
 
-                        string friendlyAppName = AppFriendlyNames.ContainsKey(newestRecord.AppName)
-                            ? AppFriendlyNames[newestRecord.AppName]
-                            : newestRecord.AppName;
+                bool isSingleDayRange = start.HasValue && end.HasValue && start.Value.Date == end.Value.Date;
 
-                        var totalDuration = TimeSpan.FromSeconds(g.Sum(x => x.Duration.TotalSeconds));
-
-                        // Debug
-                        System.Diagnostics.Debug.WriteLine($"[Grouped] Date: {g.Key.Date:dd-MM-yyyy}, App: {friendlyAppName}, TotalDuration: {totalDuration}");
-
-                        return new AppUsage
-                        {
-                            AppName = friendlyAppName,
-                            ExePath = newestRecord.ExePath,
-                            AppIcon = newestRecord.AppIcon,
-                            Date = g.Key.Date,
-                            Duration = totalDuration
-                        };
-                    })
-                    .OrderByDescending(x => x.Duration)
-                    .ToList();
-
-
-                // 4️⃣ Debug: Final list that will go to UI
-                System.Diagnostics.Debug.WriteLine("=== Final Data to UI ===");
-                foreach (var item in groupedData)
+                if (isSingleDayRange)
                 {
-                    System.Diagnostics.Debug.WriteLine(
-                        $"UI -> App: {item.AppName}, Duration: {item.Duration}");
+                    groupedData = splitData.GroupBy(x => (object)new { x.AppName, x.Date });
+                }
+                else
+                {
+                    groupedData = splitData.GroupBy(x => (object)x.AppName);
                 }
 
-                return groupedData;
+                // Now build final result
+                var result = groupedData.Select(g =>
+                {
+                    var newestRecord = g.OrderByDescending(x => x.Date).ThenByDescending(x => x.Duration).First();
 
+                    string friendlyAppName = AppFriendlyNames.ContainsKey(newestRecord.AppName)
+                        ? AppFriendlyNames[newestRecord.AppName]
+                        : newestRecord.AppName;
+
+                    var totalDuration = TimeSpan.FromSeconds(g.Sum(x => x.Duration.TotalSeconds));
+
+                    DateTime dateValue = isSingleDayRange
+                        ? ((dynamic)g.Key).Date
+                        : g.Max(x => x.Date);
+
+                    return new AppUsage
+                    {
+                        AppName = friendlyAppName,
+                        ExePath = newestRecord.ExePath,
+                        AppIcon = newestRecord.AppIcon,
+                        Date = dateValue,
+                        Duration = totalDuration
+                    };
+                })
+                .OrderByDescending(x => x.Duration)
+                .ToList();
+
+
+                return result;
             }
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"Error in GetAllAppUsageAsync: {ex.Message}");
-                return new List<AppUsage>();  // Return empty list on failure
+                return new List<AppUsage>();
             }
         }
+
 
 
         private static readonly Dictionary<string, string> AppFriendlyNames = new Dictionary<string, string>()
