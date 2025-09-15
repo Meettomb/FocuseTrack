@@ -117,7 +117,9 @@ namespace FocusTrack.Pages
             {
                 await LoadDefaultGraph();    // load chart
                 await LoadDefaultAppUsage(); // load grid data safely
-               
+
+                SelectedDate = DateTime.Today;
+
             };
 
             StartupHelper.AddToStartup();
@@ -173,6 +175,8 @@ namespace FocusTrack.Pages
 
             Dispatcher.Invoke(() =>
             {
+                // Update ComboBox safely on UI thread
+                RangeSelecter.SelectedIndex = 0;
                 AppUsages.Clear();
                 foreach (var item in allData)
                     AppUsages.Add(item);
