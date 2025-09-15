@@ -44,6 +44,8 @@ namespace FocusTrack.Pages
         private string lastTitle = "";
         private string lastExePath = "";
         private DateTime lastStart;
+        private DateTime rangeStart;
+        private DateTime rangeEnd;
 
         private DateTime _selectedDate = DateTime.Today;
         public DateTime SelectedDate
@@ -63,6 +65,20 @@ namespace FocusTrack.Pages
             }
         }
 
+        private bool _isCalendarOpen;
+
+        public bool IsCalendarOpen
+        {
+            get => _isCalendarOpen;
+            set
+            {
+                if (_isCalendarOpen != value)
+                {
+                    _isCalendarOpen = value;
+                    OnPropertyChanged(nameof(IsCalendarOpen));
+                }
+            }
+        }
 
         public event PropertyChangedEventHandler PropertyChanged;
         protected void OnPropertyChanged(string propertyName)
@@ -81,7 +97,6 @@ namespace FocusTrack.Pages
                     CalendarPopup.IsOpen = false; // close the popup
                 };
             }
-
             DataContext = this;
 
             AppUsages = new ObservableCollection<AppUsage>();
@@ -172,54 +187,53 @@ namespace FocusTrack.Pages
             if (RangeSelecter.SelectedItem is ComboBoxItem selected)
             {
                 string range = selected.Tag.ToString();
-
                 List<HourlyUsage> data = null;
-                List<HourlyUsage> Listdata = null;
-                DateTime start = DateTime.Today;
 
                 switch (range)
                 {
                     case "today":
-                        data = await Database.GetHourlyUsageAsync(DateTime.Today, DateTime.Now);
-                        await LoadAllAppUsageAsync(DateTime.Today, DateTime.Now);
-                       
+                        rangeStart = DateTime.Today;
+                        rangeEnd = DateTime.Now;
+                        data = await Database.GetHourlyUsageAsync(rangeStart, rangeEnd);
+                        await LoadAllAppUsageAsync(rangeStart, rangeEnd);
                         break;
 
                     case "7d":
-                        var start7d = DateTime.Today.AddDays(-7);
-                        data = await Database.GetHourlyUsageAsync(start7d, DateTime.Now);
-                        await LoadAllAppUsageAsync(start7d, DateTime.Now);
+                        rangeStart = DateTime.Today.AddDays(-7);
+                        rangeEnd = DateTime.Now;
+                        data = await Database.GetHourlyUsageAsync(rangeStart, rangeEnd);
+                        await LoadAllAppUsageAsync(rangeStart, rangeEnd);
                         break;
 
-
                     case "1m":
-                        start = DateTime.Today.AddMonths(-1);
-                        data = await Database.GetHourlyUsageAsync(start, DateTime.Now);
-                        await LoadAllAppUsageAsync(start, DateTime.Now);
+                        rangeStart = DateTime.Today.AddMonths(-1);
+                        rangeEnd = DateTime.Now;
+                        data = await Database.GetHourlyUsageAsync(rangeStart, rangeEnd);
+                        await LoadAllAppUsageAsync(rangeStart, rangeEnd);
                         break;
 
                     case "3m":
-                        start = DateTime.Today.AddMonths(-3);
-                        data = await Database.GetHourlyUsageAsync(start, DateTime.Now);
-                        await LoadAllAppUsageAsync(start, DateTime.Now);
+                        rangeStart = DateTime.Today.AddMonths(-3);
+                        rangeEnd = DateTime.Now;
+                        data = await Database.GetHourlyUsageAsync(rangeStart, rangeEnd);
+                        await LoadAllAppUsageAsync(rangeStart, rangeEnd);
                         break;
 
                     case "overall":
-                        start = DateTime.MinValue;
-                        data = await Database.GetHourlyUsageAsync(start, DateTime.Now);
-                        await LoadAllAppUsageAsync(start, DateTime.Now);
+                        rangeStart = DateTime.MinValue;
+                        rangeEnd = DateTime.Now;
+                        data = await Database.GetHourlyUsageAsync(rangeStart, rangeEnd);
+                        await LoadAllAppUsageAsync(rangeStart, rangeEnd);
                         break;
-
                 }
+
                 if (data != null)
                 {
                     LoadGraphData(data);
                 }
             }
         }
-        
-        
-        
+
         private void LoadGraphData(List<HourlyUsage> data)
         {
             if (UsageChart == null) return;
@@ -332,21 +346,30 @@ namespace FocusTrack.Pages
         }
 
 
-
-
         private void Grid_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
             if (sender is Grid grid && grid.Tag is AppUsage clickedInfo)
             {
+                // Check selected range
+                if (RangeSelecter.SelectedItem is ComboBoxItem selectedRange)
+                {
+                    string range = selectedRange.Tag.ToString();
+
+                    if (range != "today")
+                    {
+                        MessageBox.Show("You can only view details for a single day.", "Info", MessageBoxButton.OK, MessageBoxImage.Information);
+                        return; // Stop navigation
+                    }
+                }
+
+                // Proceed with navigation for "today" only
                 var appName = clickedInfo.AppName;
                 var date = SelectedDate;
 
                 var uri = new Uri($"/Pages/AppDetailPage.xaml?appName={Uri.EscapeDataString(appName)}&date={date:yyyy-MM-dd}", UriKind.Relative);
-                this.NavigationService.Navigate(uri);  // Only navigate, no other action
+                this.NavigationService.Navigate(uri);
             }
         }
-
-
 
 
 
@@ -378,10 +401,6 @@ namespace FocusTrack.Pages
             await LoadAllAppUsageAsync(start, end);
             
         }
-
-      
-
-
 
 
     }
