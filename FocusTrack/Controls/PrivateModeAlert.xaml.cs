@@ -21,6 +21,7 @@ namespace FocusTrack.Controls
     public partial class PrivateModeAlert : UserControl
     {
         public event EventHandler OkClicked;
+        public event EventHandler CloseClicked;
 
         public PrivateModeAlert()
         {
@@ -30,6 +31,10 @@ namespace FocusTrack.Controls
         private void OkButton_Click(object sender, RoutedEventArgs e)
         {
             OkClicked?.Invoke(this, EventArgs.Empty);
+        }
+        private void CloseButton_Click(object sender, RoutedEventArgs e)
+        {
+            CloseClicked?.Invoke(this, EventArgs.Empty);
         }
     }
 

@@ -51,16 +51,19 @@ namespace FocusTrack.Pages
 
         public Settings()
         {
-
             InitializeComponent();
             Database.Initialize();
             this.DataContext = this;
             UserSettings = new UserSettings();
 
+            // Subscribe to events
             PrivateModeAlertControl.OkClicked += PrivateModeAlertControl_OkClicked;
+            PrivateModeAlertControl.CloseClicked += PrivateModeAlertControl_CloseClicked;
 
             this.Loaded += Page_Load;
         }
+
+      
 
 
         private async void Page_Load(object sender, RoutedEventArgs e)
@@ -115,7 +118,10 @@ namespace FocusTrack.Pages
             System.Diagnostics.Debug.WriteLine("PrivateModeAlert OK clicked.");
             PrivateModeAlertPopup.IsOpen = false;
         }
-
+        private void PrivateModeAlertControl_CloseClicked(object sender, EventArgs e)
+        {
+            PrivateModeAlertPopup.IsOpen = false;
+        }
 
 
 
