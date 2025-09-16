@@ -207,12 +207,15 @@ namespace FocusTrack
 
         private void SettingButton_Click(object sender, RoutedEventArgs e)
         {
-            MainFrame.Navigate(new Settings());
+            if (!(MainFrame.Content is Settings)) { 
+                MainFrame.Navigate(new Settings());
+            }
         }
         private void HomeButton_Click(object sender, RoutedEventArgs e)
         {
-            // Navigate to home page
-            MainFrame.Navigate(new HomePage());
+            if (!(MainFrame.Content is HomePage)) { 
+                MainFrame.Navigate(new HomePage());
+            }
         }
 
         private void AppOpenTimeButton_Click(object sender, RoutedEventArgs e)
