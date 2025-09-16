@@ -19,6 +19,7 @@
                 <ResourceDictionary Source="Style/DateSelectorStyle.xaml"/>
                 <ResourceDictionary Source="Style/CalendarStyle.xaml"/>
                 <ResourceDictionary Source="Style/NavButtonsStyle.xaml"/>
+                <ResourceDictionary Source="Style/CustomSliderToggleButton.xaml"/>
             </ResourceDictionary.MergedDictionaries>
         </ResourceDictionary>
     </Application.Resources>

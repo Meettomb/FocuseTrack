@@ -33,6 +33,8 @@ namespace FocusTrack
 
         private const uint PROCESS_QUERY_LIMITED_INFORMATION = 0x1000;
 
+        public static bool TrackPrivateModeEnabled = true;
+
         // Ignore system/host processes
         private static readonly HashSet<string> IgnoredProcesses = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
         {
@@ -79,6 +81,11 @@ namespace FocusTrack
 
         public static (string AppName, string Title, string ExePath, byte[] AppIcon) GetActiveWindowInfo()
         {
+            // If user disabled tracking private mode, skip all private browsers
+            if (!TrackPrivateModeEnabled && IsPrivateBrowserActive())
+                return ("", "", "", null);
+
+
             IntPtr hwnd = GetForegroundWindow();
             if (hwnd == IntPtr.Zero) return ("", "", "", null);
 
@@ -163,8 +170,6 @@ namespace FocusTrack
 
             return (appName, windowTitle, exePath, appIcon);
         }
-
-
 
         private static string GetProcessPath(Process proc)
         {
@@ -295,9 +300,6 @@ namespace FocusTrack
             return processName;
         }
 
-
-
-
         private static byte[] GetFallbackUwpIcon(string windowTitle)
         {
             foreach (var kvp in UwpApps)
@@ -312,6 +314,81 @@ namespace FocusTrack
                 }
             }
             return null;
+        }
+
+
+
+        private static bool IsPrivateBrowserActive()
+        {
+            // Browsers to check
+            string[] privateBrowsers = { "chrome", "firefox", "msedge", "opera" };
+
+            IntPtr hwnd = GetForegroundWindow();
+            if (hwnd == IntPtr.Zero) return false;
+
+            GetWindowThreadProcessId(hwnd, out uint pid);
+            Process proc = null;
+            try
+            {
+                proc = Process.GetProcessById((int)pid);
+            }
+            catch
+            {
+                return false;
+            }
+
+            string procName = proc.ProcessName.ToLower();
+
+            if (!privateBrowsers.Contains(procName))
+                return false;
+
+            // Get the window title
+            var windowTitleBuilder = new StringBuilder(256);
+            GetWindowText(hwnd, windowTitleBuilder, windowTitleBuilder.Capacity);
+            string windowTitle = windowTitleBuilder.ToString().ToLower();
+
+            switch (procName)
+            {
+                case "chrome":
+                    // Chrome: check command line or window title
+                    return IsChromeIncognito(proc) || windowTitle.Contains("incognito");
+
+                case "opera":
+                    // Opera: check window title
+                    return windowTitle.Contains("private") || IsChromeIncognito(proc);
+
+                case "firefox":
+                    // Firefox: check window title (only works after user navigates)
+                    return windowTitle.Contains("private browsing");
+
+                case "msedge":
+                    // Edge: check window title (only works after user navigates)
+                    return windowTitle.Contains("inprivate");
+
+                default:
+                    return false;
+            }
+        }
+
+        // Helper for Chrome Incognito detection
+        private static bool IsChromeIncognito(Process proc)
+        {
+            try
+            {
+                using (var searcher = new ManagementObjectSearcher(
+                    $"SELECT CommandLine FROM Win32_Process WHERE ProcessId={proc.Id}"))
+                {
+                    foreach (var obj in searcher.Get())
+                    {
+                        string cmdLine = (obj["CommandLine"] ?? "").ToString().ToLower();
+                        if (cmdLine.Contains("--incognito"))
+                            return true;
+                    }
+                }
+            }
+            catch { }
+
+            return false;
         }
 
 

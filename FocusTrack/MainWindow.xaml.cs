@@ -84,9 +84,10 @@ namespace FocusTrack
 
             AppUsages = new ObservableCollection<AppUsage>();
 
-            // 🔹 Ensure DB file & AppUsage table exist before anything else uses it
+            // Ensure DB file & AppUsage table exist before anything else uses it
             Database.Initialize();
-
+            // Load TrackPrivateMode from DB at startup
+            InitializeTrackPrivateMode();
             lastStart = DateTime.Now;
 
             timer = new System.Timers.Timer(5000);
@@ -192,12 +193,21 @@ namespace FocusTrack
             notifyIcon.ContextMenuStrip = menu;
         }
 
+        // Async helper to load setting
+        private async void InitializeTrackPrivateMode()
+        {
+            var settings = await Database.GetUserSettings();
+            if (settings.Count > 0)
+            {
+                ActiveWindowTracker.TrackPrivateModeEnabled = settings[0].TrackPrivateMode;
+                System.Diagnostics.Debug.WriteLine($"TrackPrivateMode loaded at startup: {settings[0].TrackPrivateMode}");
+            }
+        }
 
-      
 
         private void SettingButton_Click(object sender, RoutedEventArgs e)
         {
-            //MessageBox.Show("Settings button clicked!");
+            MainFrame.Navigate(new Settings());
         }
         private void HomeButton_Click(object sender, RoutedEventArgs e)
         {

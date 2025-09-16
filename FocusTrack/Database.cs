@@ -1,4 +1,5 @@
-﻿using FocusTrack.Model;
+﻿using FocusTrack.model;
+using FocusTrack.Model;
 using System;
 using System.Collections.Generic;
 using System.Data.Common;
@@ -36,16 +37,24 @@ namespace FocusTrack
                     {
                         // Always run CREATE TABLE IF NOT EXISTS
                         cmd.CommandText = @"
-                CREATE TABLE IF NOT EXISTS AppUsage (
-                    Id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    AppName TEXT,
-                    AppIcon BLOB,
-                    WindowTitle TEXT,
-                    StartTime TEXT,
-                    EndTime TEXT,
-                    DurationSeconds INTEGER,
-                    ExePath TEXT
-                );";
+                            CREATE TABLE IF NOT EXISTS AppUsage (
+                                Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                                AppName TEXT,
+                                AppIcon BLOB,
+                                WindowTitle TEXT,
+                                StartTime TEXT,
+                                EndTime TEXT,
+                                DurationSeconds INTEGER,
+                                ExePath TEXT
+                            );";
+                        cmd.ExecuteNonQuery();
+
+                        // Create UserSettings table
+                        cmd.CommandText = @"
+                            CREATE TABLE IF NOT EXISTS UserSettings  (
+                                Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                                TrackPrivateMode BOOLEAN DEFAULT 1
+                            );";
                         cmd.ExecuteNonQuery();
                     }
                 }
@@ -108,6 +117,7 @@ namespace FocusTrack
         }
 
 
+
         public class HourlyUsage
         {
             public DateTime Date { get; set; }
@@ -116,7 +126,6 @@ namespace FocusTrack
 
             public double TotalMinutes => TotalSeconds / 60.0; // Convenience property
         }
-
         public static async Task<List<HourlyUsage>> GetHourlyUsageAsync(DateTime start, DateTime end)
         {
             var result = new int[24]; // Index = hour 0-23
@@ -177,8 +186,6 @@ namespace FocusTrack
 
 
 
-
-        // Internal class to hold raw data
         private class AppUsageRaw
         {
             public string AppName { get; set; }
@@ -187,7 +194,6 @@ namespace FocusTrack
             public DateTime StartTime { get; set; }
             public DateTime EndTime { get; set; }
         }
-
         public static async Task<List<AppUsage>> GetAllAppUsageAsync(DateTime? start, DateTime? end)
         {
             try
@@ -318,8 +324,6 @@ namespace FocusTrack
             }
         }
 
-
-
         private static readonly Dictionary<string, string> AppFriendlyNames = new Dictionary<string, string>()
         {
              { "chrome", "Google Chrome" },
@@ -359,8 +363,7 @@ namespace FocusTrack
         };
 
 
-        public static async Task<List<AppUsage>> GetAppDetailResultsByAppName(
-    string appName, DateTime date, DateTime? start = null, DateTime? end = null)
+        public static async Task<List<AppUsage>> GetAppDetailResultsByAppName(string appName, DateTime date, DateTime? start = null, DateTime? end = null)
         {
             var rawData = new List<AppUsage>();
 
@@ -462,6 +465,44 @@ namespace FocusTrack
         }
 
 
+        public static async Task<List<UserSettings>> GetUserSettings()
+        {
+            var rawSettings = new List<UserSettings>();
+
+            using (var conn = new SQLiteConnection(ConnString))
+            {
+                await conn.OpenAsync();
+                using (var cmd = conn.CreateCommand())
+                {
+                    cmd.CommandText = "SELECT Id, TrackPrivateMode FROM UserSettings LIMIT 1";
+                    using (var reader = await cmd.ExecuteReaderAsync())
+                    {
+                        while (await reader.ReadAsync())
+                        {
+                            rawSettings.Add(new UserSettings
+                            {
+                                Id = Convert.ToInt32(reader["Id"]),
+                                TrackPrivateMode = Convert.ToBoolean(reader["TrackPrivateMode"])
+                            });
+                        }
+                    }
+                }
+            }
+            return rawSettings;
+        }
+        public static async Task UpdateTrackPrivateModeAsync(bool value)
+        {
+            using (var conn = new SQLiteConnection(ConnString))
+            {
+                await conn.OpenAsync();
+                using (var cmd = conn.CreateCommand())
+                {
+                    cmd.CommandText = "UPDATE UserSettings SET TrackPrivateMode = @value WHERE Id = 1";
+                    cmd.Parameters.AddWithValue("@value", value ? 1 : 0);
+                    await cmd.ExecuteNonQueryAsync();
+                }
+            }
+        }
 
 
     }
