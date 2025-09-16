@@ -5,11 +5,12 @@
       xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
       xmlns:local="clr-namespace:FocusTrack.Pages"
       xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+      xmlns:controls="clr-namespace:FocusTrack.Controls"
       mc:Ignorable="d" 
       d:DesignHeight="450" d:DesignWidth="800"
       Title="Settings">
 
-    <Grid Background="#333" >
+    <Grid Background="#333" x:Name="MainGrid" >
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
@@ -121,5 +122,27 @@
 
         </Grid>
 
+
+
+  <!-- Add this transparent overlay grid for popup alerts -->
+        <Popup x:Name="PrivateModeAlertPopup"
+           Placement="Center"
+           AllowsTransparency="True"
+           StaysOpen="False"
+           PopupAnimation="Fade"
+           HorizontalAlignment="Center"
+           VerticalAlignment="Center">
+
+            <!-- Remove fixed width from Border so content can size naturally -->
+            <Border Background="#222" CornerRadius="12" Padding="25" MinWidth="350" MinHeight="220">
+                <controls:PrivateModeAlert x:Name="PrivateModeAlertControl"/>
+            </Border>
+        </Popup>
+
+
+
+
     </Grid>
+    
+    
 </Page>

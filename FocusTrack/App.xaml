@@ -20,6 +20,7 @@
                 <ResourceDictionary Source="Style/CalendarStyle.xaml"/>
                 <ResourceDictionary Source="Style/NavButtonsStyle.xaml"/>
                 <ResourceDictionary Source="Style/CustomSliderToggleButton.xaml"/>
+                <ResourceDictionary Source="Style/CornerRoundButton.xaml"/>
             </ResourceDictionary.MergedDictionaries>
         </ResourceDictionary>
     </Application.Resources>

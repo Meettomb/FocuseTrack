@@ -1,7 +1,9 @@
-﻿using FocusTrack.model;
+﻿using FocusTrack.Controls;
+using FocusTrack.model;
 using FocusTrack.Properties;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -24,6 +26,27 @@ namespace FocusTrack.Pages
     /// </summary>
     public partial class Settings : Page
     {
+        private bool _isPrivateModeAlertOpen;
+        public bool IsPrivateModeAlertOpen
+        {
+            get => _isPrivateModeAlertOpen;
+            set
+            {
+                if (_isPrivateModeAlertOpen != value)
+                {
+                    _isPrivateModeAlertOpen = value;
+                    OnPropertyChanged(nameof(IsPrivateModeAlertOpen));
+                }
+            }
+        }
+
+
+        public event PropertyChangedEventHandler PropertyChanged;
+        protected void OnPropertyChanged(string propertyName)
+        {
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        }
+
         public UserSettings UserSettings { get; set; }
 
         public Settings()
@@ -33,6 +56,8 @@ namespace FocusTrack.Pages
             Database.Initialize();
             this.DataContext = this;
             UserSettings = new UserSettings();
+
+            PrivateModeAlertControl.OkClicked += PrivateModeAlertControl_OkClicked;
 
             this.Loaded += Page_Load;
         }
@@ -65,27 +90,43 @@ namespace FocusTrack.Pages
         }
 
         // Make this async
+
         private async Task LoadSettingAsync()
         {
             var settingsList = await Database.GetUserSettings();
+            System.Diagnostics.Debug.WriteLine($"Settings count loaded: {settingsList.Count}");
+
             if (settingsList.Count > 0)
             {
                 UserSettings = settingsList[0];
+
                 TrackPrivateModeToggle.IsChecked = UserSettings.TrackPrivateMode;
                 TrackVPNToggle.IsChecked = UserSettings.TrackVPN;
 
-                // IMPORTANT: Update the static flag
                 ActiveWindowTracker.TrackPrivateModeEnabled = UserSettings.TrackPrivateMode;
                 ActiveWindowTracker.TrackVPNEnabled = UserSettings.TrackVPN;
 
+              
             }
         }
+
+        private void PrivateModeAlertControl_OkClicked(object sender, EventArgs e)
+        {
+            System.Diagnostics.Debug.WriteLine("PrivateModeAlert OK clicked.");
+            PrivateModeAlertPopup.IsOpen = false;
+        }
+
+
+
+
 
         private async void TrackPrivateModeToggle_Changed(object sender, RoutedEventArgs e)
         {
             if (TrackPrivateModeToggle.IsChecked.HasValue)
             {
                 bool isOn = TrackPrivateModeToggle.IsChecked.Value;
+                // Check previous value BEFORE updating it
+                bool wasOn = UserSettings.TrackPrivateMode;
 
                 await Database.UpdateTrackPrivateModeAsync(isOn);
                 UserSettings.TrackPrivateMode = isOn;
@@ -94,8 +135,15 @@ namespace FocusTrack.Pages
                 ActiveWindowTracker.TrackPrivateModeEnabled = isOn;
 
                 System.Diagnostics.Debug.WriteLine($"TrackPrivateMode updated: {isOn}");
+
+                // Show popup only if it changed from true → false
+                if (!isOn && wasOn)
+                {
+                    PrivateModeAlertPopup.IsOpen = true;
+                }
             }
         }
+
 
         private async void TrackVPNToggle_Changed(object sender, RoutedEventArgs e)
         {
@@ -139,8 +187,20 @@ namespace FocusTrack.Pages
             transform.BeginAnimation(TranslateTransform.XProperty, animation);
         }
 
+        private void ShowPrivateModeAlertPopup()
+        {
+            // Calculate center position
+            double horizontalCenter = (this.ActualWidth - PrivateModeAlertPopup.ActualWidth) / 2;
+            double verticalCenter = (this.ActualHeight - PrivateModeAlertPopup.ActualHeight) / 2;
 
-      
+            PrivateModeAlertPopup.HorizontalOffset = horizontalCenter;
+            PrivateModeAlertPopup.VerticalOffset = verticalCenter;
+
+            PrivateModeAlertPopup.IsOpen = true;
+        }
+
+
+
 
     }
 }

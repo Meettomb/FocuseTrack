@@ -213,6 +213,10 @@
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
+    <Page Include="Controls\PrivateModeAlert.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
     <Page Include="MainWindow.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
@@ -223,6 +227,9 @@
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="BackgroundTracker.cs" />
+    <Compile Include="Controls\PrivateModeAlert.xaml.cs">
+      <DependentUpon>PrivateModeAlert.xaml</DependentUpon>
+    </Compile>
     <Compile Include="converters\ByteToImageConverter.cs" />
     <Compile Include="converters\ExeToIconConverter.cs" />
     <Compile Include="Controls\CustomCalendar.xaml.cs">
@@ -256,6 +263,10 @@
       <Generator>MSBuild:Compile</Generator>
     </Page>
     <Page Include="Style\CalendarStyle.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="Style\CornerRoundButton.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>

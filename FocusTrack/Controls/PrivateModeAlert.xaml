@@ -1,0 +1,54 @@
+﻿<UserControl x:Class="FocusTrack.Controls.PrivateModeAlert"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+                xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+             mc:Ignorable="d" 
+             d:DesignHeight="250" d:DesignWidth="400">
+
+    <Border Background="#1E1E1E" BorderBrush="#444" BorderThickness="1" Padding="25" CornerRadius="12" Width="400" MinHeight="320" >
+        <StackPanel HorizontalAlignment="Center">
+
+            <!-- Header with icon and title -->
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,15">
+                <materialDesign:PackIcon Kind="AlertCircleOutline" 
+                             Width="28" Height="28" 
+                             Foreground="#FFCC00" />
+                <TextBlock Text="Tracking Disabled in Private/Incognito Mode"
+                           FontSize="20"
+                           FontWeight="Bold"
+                           Foreground="White"
+                           VerticalAlignment="Center"
+                           Margin="8,0,0,0"
+                           TextWrapping="Wrap"
+                           TextAlignment="Center"
+                           MaxWidth="300"/> 
+
+            </StackPanel>
+
+            <!-- Body Text -->
+            <TextBlock Text="Some browsers are running in Private/Incognito mode. Activity tracking is disabled in these browsers to protect your privacy." 
+                       TextWrapping="Wrap"
+                       FontSize="15" Foreground="LightGray" Margin="0,10,0,15"
+                       TextAlignment="Center"/>
+
+            <!-- Browser List in cleaner bullet style -->
+            <StackPanel Margin="0,10,0,20">
+                <TextBlock Text="• Microsoft Edge" FontSize="14" Foreground="White"/>
+                <TextBlock Text="• Mozilla Firefox" FontSize="14" Foreground="White"/>
+                <TextBlock Text="• Internet Explorer" FontSize="14" Foreground="White"/>
+                <TextBlock Text="• Tor Browser" FontSize="14" Foreground="White"/>
+            </StackPanel>
+
+            <Button Content="OK"
+            Style="{StaticResource PrimaryButtonStyle}"
+            Width="120"
+            Height="35"
+            Click="OkButton_Click"/>
+
+
+        </StackPanel>
+    </Border>
+
+</UserControl>

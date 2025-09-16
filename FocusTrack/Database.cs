@@ -53,9 +53,17 @@ namespace FocusTrack
                         cmd.CommandText = @"
                             CREATE TABLE IF NOT EXISTS UserSettings  (
                                 Id INTEGER PRIMARY KEY AUTOINCREMENT,
-                                TrackPrivateMode BOOLEAN DEFAULT 1
+                                TrackPrivateMode BOOLEAN DEFAULT 1,
                                 TrackVPN BOOLEAN DEFAULT 1
                             );";
+                        cmd.ExecuteNonQuery();
+
+                        // Ensure at least one row exists
+                        cmd.CommandText = @"
+                            INSERT INTO UserSettings (TrackPrivateMode, TrackVPN)
+                            SELECT 1, 1
+                            WHERE NOT EXISTS (SELECT 1 FROM UserSettings);
+                        ";
                         cmd.ExecuteNonQuery();
                     }
                 }
