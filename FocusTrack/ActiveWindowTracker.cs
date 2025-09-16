@@ -34,6 +34,7 @@ namespace FocusTrack
         private const uint PROCESS_QUERY_LIMITED_INFORMATION = 0x1000;
 
         public static bool TrackPrivateModeEnabled = true;
+        public static bool TrackVPNEnabled = true;
 
         // Ignore system/host processes
         private static readonly HashSet<string> IgnoredProcesses = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
@@ -47,8 +48,18 @@ namespace FocusTrack
             "csrss",
             "wininit",
             "services",
-            "lsass"
+            "lsass",
         };
+        private static readonly HashSet<string> IgnoredVPNProcesses = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            // Common VPN applications
+            "nordvpn", "expressvpn", "surfshark", "protonvpn", "protonvpnservice", "openvpn",
+            "ivacy", "ivpn", "windscribe", "hide.me", "privatevpn", "hideipvpn", "strongvpn", "cryptostorm",
+            "pia", "pia_service", "cactusvpn", "perfectprivacy", "torguard", "vpn.ac", "airvpn", "mullvad",
+            "airvpnservice", "tunnelbear", "tunnelblick", "softethervpn", "softether", "openconnect", "forticlient",
+            "fortinet", "anyconnect", "ciscoanyconnect", "forticlientsslvpn", "fortivpn", "fortinetvpn", "fortivpnclient"
+        };
+
 
         // Map for known UWP apps running under ApplicationFrameHost
         private static readonly Dictionary<string, (string FriendlyName, string IconPath)> UwpApps =
@@ -81,10 +92,11 @@ namespace FocusTrack
 
         public static (string AppName, string Title, string ExePath, byte[] AppIcon) GetActiveWindowInfo()
         {
+           
+
             // If user disabled tracking private mode, skip all private browsers
             if (!TrackPrivateModeEnabled && IsPrivateBrowserActive())
                 return ("", "", "", null);
-
 
             IntPtr hwnd = GetForegroundWindow();
             if (hwnd == IntPtr.Zero) return ("", "", "", null);
@@ -102,6 +114,8 @@ namespace FocusTrack
                 return ("Unknown", "", "", null);
             }
 
+          
+
             // Ignore unwanted system processes
             if (IgnoredProcesses.Contains(proc.ProcessName))
                 return ("", "", "", null);
@@ -114,6 +128,22 @@ namespace FocusTrack
             GetWindowText(hwnd, sb, sb.Capacity);
             string windowTitle = sb.ToString();
             //Debug.WriteLine($"[GetActiveWindowInfo] Window Title: {windowTitle}");
+
+            if (!TrackVPNEnabled)
+                return ("", "", "", null);
+
+
+            if (IgnoredVPNProcesses.Contains(proc.ProcessName))
+                return ("", "", "", null);
+
+
+            // === Check for VPN keywords ===
+            var vpnKeywords = new string[] { "vpn", "nord", "express", "surfshark", "proton" };
+            foreach (var kw in vpnKeywords)
+            {
+                if (windowTitle.IndexOf(kw, StringComparison.OrdinalIgnoreCase) >= 0)
+                    return ("", "", "", null); // skip tracking
+            }
 
             // === Add this block here ===
             if (proc.ProcessName.Equals("explorer", StringComparison.OrdinalIgnoreCase))
@@ -350,12 +380,12 @@ namespace FocusTrack
             switch (procName)
             {
                 case "chrome":
-                    // Chrome: check command line or window title
-                    return IsChromeIncognito(proc) || windowTitle.Contains("incognito");
-
+                case "chromium":
+                case "brave":
+                case "vivaldi":
                 case "opera":
-                    // Opera: check window title
-                    return windowTitle.Contains("private") || IsChromeIncognito(proc);
+                    // Chrome-based browsers: check command line or window title
+                    return IsChromeIncognito(proc) || windowTitle.Contains("incognito");
 
                 case "firefox":
                     // Firefox: check window title (only works after user navigates)
@@ -364,6 +394,13 @@ namespace FocusTrack
                 case "msedge":
                     // Edge: check window title (only works after user navigates)
                     return windowTitle.Contains("inprivate");
+
+                case "iexplore":
+                    return windowTitle.Contains("inprivate") || windowTitle.Contains("private");
+
+                case "tor":
+                    return windowTitle.Contains("tor") || windowTitle.Contains("private");
+
 
                 default:
                     return false;
@@ -392,6 +429,8 @@ namespace FocusTrack
         }
 
 
+
+       
 
 
     }

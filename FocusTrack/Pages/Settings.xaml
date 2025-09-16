@@ -47,16 +47,19 @@
         <Grid Grid.Row="1" Margin="20">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
 
-            <Border CornerRadius="10"
-            Background="#222"
-            Padding="10, 0"
-            Margin="0"
-            >
-                <Grid Grid.Row="0"
-              Height="50"
-              VerticalAlignment="Center">
+            <Border
+                    Grid.Row="0"
+                    CornerRadius="10"
+                    Background="#222"
+                    Padding="10, 0"
+                    Margin="0,5">
+
+                <Grid
+                      Height="50"
+                      VerticalAlignment="Center">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*"/>
                         <ColumnDefinition Width="Auto"/>
@@ -80,6 +83,42 @@
 
                 </Grid>
             </Border>
+
+            <Border
+                 Grid.Row="1"
+                 CornerRadius="10"
+                 Background="#222"
+                 Padding="10, 0"
+                 Margin="0, 5">
+
+                <Grid
+                   Height="50"
+                   VerticalAlignment="Center">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+
+                    <TextBlock Grid.Column="0"
+                        Text="Track VPN's"
+                        Foreground="White"
+                        FontSize="16"
+                        VerticalAlignment="Center"
+                        FontWeight="Bold"/>
+
+                    <ToggleButton x:Name="TrackVPNToggle"
+                       Grid.Column="1"
+                       Margin="0 0 10 0"
+                       VerticalAlignment="Center"
+                       HorizontalAlignment="Right"
+                       Style="{StaticResource CustomSliderToggleButton}" 
+                       Checked="TrackVPNToggle_Changed"
+                       Unchecked="TrackVPNToggle_Changed"/>
+
+                </Grid>
+            </Border>
+
+
         </Grid>
 
     </Grid>

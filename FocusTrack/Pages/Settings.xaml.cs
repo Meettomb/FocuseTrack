@@ -72,11 +72,12 @@ namespace FocusTrack.Pages
             {
                 UserSettings = settingsList[0];
                 TrackPrivateModeToggle.IsChecked = UserSettings.TrackPrivateMode;
+                TrackVPNToggle.IsChecked = UserSettings.TrackVPN;
 
                 // IMPORTANT: Update the static flag
                 ActiveWindowTracker.TrackPrivateModeEnabled = UserSettings.TrackPrivateMode;
+                ActiveWindowTracker.TrackVPNEnabled = UserSettings.TrackVPN;
 
-                System.Diagnostics.Debug.WriteLine($"TrackPrivateMode from DB: {UserSettings.TrackPrivateMode}");
             }
         }
 
@@ -96,6 +97,21 @@ namespace FocusTrack.Pages
             }
         }
 
+        private async void TrackVPNToggle_Changed(object sender, RoutedEventArgs e)
+        {
+            if (TrackVPNToggle.IsChecked.HasValue)
+            {
+                bool isOn = TrackVPNToggle.IsChecked.Value;
+
+                await Database.UpdateTrackVPNAsync(isOn);
+                UserSettings.TrackVPN = isOn; // <-- fix here
+
+                // Update the static flag
+                ActiveWindowTracker.TrackVPNEnabled = isOn;
+
+                System.Diagnostics.Debug.WriteLine($"TrackVPN updated: {isOn}");
+            }
+        }
 
 
 

@@ -54,6 +54,7 @@ namespace FocusTrack
                             CREATE TABLE IF NOT EXISTS UserSettings  (
                                 Id INTEGER PRIMARY KEY AUTOINCREMENT,
                                 TrackPrivateMode BOOLEAN DEFAULT 1
+                                TrackVPN BOOLEAN DEFAULT 1
                             );";
                         cmd.ExecuteNonQuery();
                     }
@@ -474,7 +475,7 @@ namespace FocusTrack
                 await conn.OpenAsync();
                 using (var cmd = conn.CreateCommand())
                 {
-                    cmd.CommandText = "SELECT Id, TrackPrivateMode FROM UserSettings LIMIT 1";
+                    cmd.CommandText = "SELECT Id, TrackPrivateMode, TrackVPN FROM UserSettings LIMIT 1";
                     using (var reader = await cmd.ExecuteReaderAsync())
                     {
                         while (await reader.ReadAsync())
@@ -482,7 +483,8 @@ namespace FocusTrack
                             rawSettings.Add(new UserSettings
                             {
                                 Id = Convert.ToInt32(reader["Id"]),
-                                TrackPrivateMode = Convert.ToBoolean(reader["TrackPrivateMode"])
+                                TrackPrivateMode = Convert.ToBoolean(reader["TrackPrivateMode"]),
+                                TrackVPN = Convert.ToBoolean(reader["TrackVPN"])
                             });
                         }
                     }
@@ -498,6 +500,19 @@ namespace FocusTrack
                 using (var cmd = conn.CreateCommand())
                 {
                     cmd.CommandText = "UPDATE UserSettings SET TrackPrivateMode = @value WHERE Id = 1";
+                    cmd.Parameters.AddWithValue("@value", value ? 1 : 0);
+                    await cmd.ExecuteNonQueryAsync();
+                }
+            }
+        }
+        public static async Task UpdateTrackVPNAsync(bool value)
+        {
+            using (var conn = new SQLiteConnection(ConnString))
+            {
+                await conn.OpenAsync();
+                using (var cmd = conn.CreateCommand())
+                {
+                    cmd.CommandText = "UPDATE UserSettings SET TrackVPN = @value WHERE Id = 1";
                     cmd.Parameters.AddWithValue("@value", value ? 1 : 0);
                     await cmd.ExecuteNonQueryAsync();
                 }
