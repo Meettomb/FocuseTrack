@@ -40,6 +40,20 @@ namespace FocusTrack.Pages
             }
         }
 
+        private bool _isVpnAlertOpen;
+        public bool _IsVpnAlertOpen
+        {
+            get => _isVpnAlertOpen;
+            set
+            {
+                if (_isVpnAlertOpen != value)
+                {
+                    _isVpnAlertOpen = value;
+                    OnPropertyChanged(nameof(_IsVpnAlertOpen));
+                }
+            }
+        }
+
 
         public event PropertyChangedEventHandler PropertyChanged;
         protected void OnPropertyChanged(string propertyName)
@@ -59,6 +73,9 @@ namespace FocusTrack.Pages
             // Subscribe to events
             PrivateModeAlertControl.OkClicked += PrivateModeAlertControl_OkClicked;
             PrivateModeAlertControl.CloseClicked += PrivateModeAlertControl_CloseClicked;
+
+            VpnAlertControl.OkClicked += VpnAlertControl_OkClicked;
+            VpnAlertControl.CloseClicked += VpnAlertControl_CloseClicked;
 
             this.Loaded += Page_Load;
         }
@@ -107,7 +124,7 @@ namespace FocusTrack.Pages
                 TrackVPNToggle.IsChecked = UserSettings.TrackVPN;
 
                 ActiveWindowTracker.TrackPrivateModeEnabled = UserSettings.TrackPrivateMode;
-                ActiveWindowTracker.TrackVPNEnabled = UserSettings.TrackVPN;
+                //ActiveWindowTracker.TrackVPNEnabled = UserSettings.TrackVPN;
 
               
             }
@@ -121,6 +138,16 @@ namespace FocusTrack.Pages
         private void PrivateModeAlertControl_CloseClicked(object sender, EventArgs e)
         {
             PrivateModeAlertPopup.IsOpen = false;
+        }
+
+
+        private void VpnAlertControl_OkClicked(object sender, EventArgs e)
+        {
+            VpnAlertPopup.IsOpen = false;
+        }
+        private void VpnAlertControl_CloseClicked(object sender, EventArgs e)
+        {
+            VpnAlertPopup.IsOpen = false;
         }
 
 
@@ -140,9 +167,7 @@ namespace FocusTrack.Pages
                 // Update the static flag
                 ActiveWindowTracker.TrackPrivateModeEnabled = isOn;
 
-                System.Diagnostics.Debug.WriteLine($"TrackPrivateMode updated: {isOn}");
-
-                // Show popup only if it changed from true → false
+                // Show popup only if it changed from true -> false
                 if (!isOn && wasOn)
                 {
                     PrivateModeAlertPopup.IsOpen = true;
@@ -156,14 +181,18 @@ namespace FocusTrack.Pages
             if (TrackVPNToggle.IsChecked.HasValue)
             {
                 bool isOn = TrackVPNToggle.IsChecked.Value;
+                bool wasOn = UserSettings.TrackVPN;
 
                 await Database.UpdateTrackVPNAsync(isOn);
-                UserSettings.TrackVPN = isOn; // <-- fix here
+                UserSettings.TrackVPN = isOn;
 
                 // Update the static flag
-                ActiveWindowTracker.TrackVPNEnabled = isOn;
+                //ActiveWindowTracker.TrackVPNEnabled = isOn;
 
-                System.Diagnostics.Debug.WriteLine($"TrackVPN updated: {isOn}");
+                // Show popup only if it change from true -> false
+                if (!isOn && wasOn) {
+                    VpnAlertPopup.IsOpen = true;
+                }
             }
         }
 
@@ -191,18 +220,6 @@ namespace FocusTrack.Pages
             animation.Completed += (s,a) =>NavigationService.GoBack();
 
             transform.BeginAnimation(TranslateTransform.XProperty, animation);
-        }
-
-        private void ShowPrivateModeAlertPopup()
-        {
-            // Calculate center position
-            double horizontalCenter = (this.ActualWidth - PrivateModeAlertPopup.ActualWidth) / 2;
-            double verticalCenter = (this.ActualHeight - PrivateModeAlertPopup.ActualHeight) / 2;
-
-            PrivateModeAlertPopup.HorizontalOffset = horizontalCenter;
-            PrivateModeAlertPopup.VerticalOffset = verticalCenter;
-
-            PrivateModeAlertPopup.IsOpen = true;
         }
 
 

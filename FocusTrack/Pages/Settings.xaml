@@ -139,6 +139,21 @@
             </Border>
         </Popup>
 
+        <Popup x:Name="VpnAlertPopup"
+               Placement="Center"
+               AllowsTransparency="True"
+               StaysOpen="False"
+               PopupAnimation="Fade"
+               HorizontalAlignment="Center"
+               VerticalAlignment="Center">
+            <Border Background="#222"
+                    CornerRadius="12"
+                    Padding="25"
+                    MinWidth="350"
+                    MinHeight="220">
+                <controls:VpnAlert x:Name="VpnAlertControl"/>
+            </Border>
+        </Popup>
 
 
 

@@ -1,0 +1,120 @@
+﻿<UserControl x:Class="FocusTrack.Controls.VpnAlert"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:local="clr-namespace:FocusTrack.Controls"
+             xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+             mc:Ignorable="d" 
+             d:DesignHeight="450" d:DesignWidth="800">
+    <Grid>
+        <!-- Header row -->
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- Top header: icon + title + close button -->
+        <Grid Margin="0,0,0,15">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
+                <!-- Icon -->
+                <ColumnDefinition Width="*"/>
+                <!-- Title -->
+                <ColumnDefinition Width="Auto"/>
+                <!-- Close button -->
+            </Grid.ColumnDefinitions>
+
+            <!-- Icon -->
+            <materialDesign:PackIcon Grid.Column="0"
+                          Kind="AlertCircleOutline" 
+                          Width="28" Height="28" 
+                          Foreground="#FFCC00"
+                          VerticalAlignment="Center"/>
+
+            <!-- Title -->
+            <TextBlock Grid.Column="1"
+            Text="Tracking Disabled for VPN Apps"
+            FontSize="16"
+            FontWeight="Bold"
+            Foreground="White"
+            VerticalAlignment="Center"
+            Margin="8,0,8,0"
+            TextWrapping="Wrap"/>
+
+            <!-- Close button -->
+            <Button Grid.Column="2"
+             Click="CloseButton_Click"
+                 Style="{StaticResource ClosePopup}">
+            </Button>
+        </Grid>
+
+
+        <!-- Main content -->
+        <StackPanel HorizontalAlignment="Center" Grid.Row="1" Margin="0,10,0,0">
+
+            <TextBlock Text="VPN tracking is disabled for below apps." 
+               TextWrapping="Wrap"
+               FontSize="15" Foreground="LightGray" Margin="0,10,0,15"
+               TextAlignment="Center"/>
+
+            <!-- Two-column Grid Layout -->
+            <Grid Margin="0,10,0,20">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Grid.Column="0">
+                    <TextBlock Text="• NordVPN" FontSize="14" Foreground="White"/>
+                    <TextBlock Text="• ExpressVPN" FontSize="14" Foreground="White"/>
+                    <TextBlock Text="• Surfshark" FontSize="14" Foreground="White"/>
+                    <TextBlock Text="• ProtonVPN" FontSize="14" Foreground="White"/>
+                    <TextBlock Text="• ProtonVPN Service" FontSize="14" Foreground="White"/>
+                    <TextBlock Text="• OpenVPN" FontSize="14" Foreground="White"/>
+                    <TextBlock Text="• Ivacy" FontSize="14" Foreground="White"/>
+                    <TextBlock Text="• IVPN" FontSize="14" Foreground="White"/>
+                    <TextBlock Text="• Windscribe" FontSize="14" Foreground="White"/>
+                    <TextBlock Text="• Hide.me" FontSize="14" Foreground="White"/>
+                    <TextBlock Text="• PrivateVPN" FontSize="14" Foreground="White"/>
+                    <TextBlock Text="• HideIPVPN" FontSize="14" Foreground="White"/>
+                    <TextBlock Text="• StrongVPN" FontSize="14" Foreground="White"/>
+                    <TextBlock Text="• Cryptostorm" FontSize="14" Foreground="White"/>
+                    <TextBlock Text="• PIA (Private Internet Access)" FontSize="14" Foreground="White"/>
+                    <TextBlock Text="• PIA Service" FontSize="14" Foreground="White"/>
+                    <TextBlock Text="• CactusVPN" FontSize="14" Foreground="White"/>
+                </StackPanel>
+
+                <StackPanel Grid.Column="1">
+                    <TextBlock Text="• Perfect Privacy" FontSize="14" Foreground="White"/>
+                    <TextBlock Text="• TorGuard" FontSize="14" Foreground="White"/>
+                    <TextBlock Text="• VPN.ac" FontSize="14" Foreground="White"/>
+                    <TextBlock Text="• AirVPN" FontSize="14" Foreground="White"/>
+                    <TextBlock Text="• Mullvad" FontSize="14" Foreground="White"/>
+                    <TextBlock Text="• AirVPN Service" FontSize="14" Foreground="White"/>
+                    <TextBlock Text="• TunnelBear" FontSize="14" Foreground="White"/>
+                    <TextBlock Text="• Tunnelblick" FontSize="14" Foreground="White"/>
+                    <TextBlock Text="• SoftEtherVPN" FontSize="14" Foreground="White"/>
+                    <TextBlock Text="• SoftEther" FontSize="14" Foreground="White"/>
+                    <TextBlock Text="• OpenConnect" FontSize="14" Foreground="White"/>
+                    <TextBlock Text="• FortiClient" FontSize="14" Foreground="White"/>
+                    <TextBlock Text="• Fortinet" FontSize="14" Foreground="White"/>
+                    <TextBlock Text="• AnyConnect" FontSize="14" Foreground="White"/>
+                    <TextBlock Text="• Cisco AnyConnect" FontSize="14" Foreground="White"/>
+                    <TextBlock Text="• FortiClient SSL VPN" FontSize="14" Foreground="White"/>
+                    <TextBlock Text="• FortiVPN" FontSize="14" Foreground="White"/>
+                    <TextBlock Text="• Fortinet VPN" FontSize="14" Foreground="White"/>
+                    <TextBlock Text="• FortiVPN Client" FontSize="14" Foreground="White"/>
+                </StackPanel>
+            </Grid>
+
+            <Button Content="OK"
+            Style="{StaticResource PrimaryButtonStyle}"
+            Width="120"
+            Height="35"
+            Click="OkButton_Click"/>
+        </StackPanel>
+
+    </Grid>
+
+</UserControl>

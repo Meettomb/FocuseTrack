@@ -34,7 +34,6 @@ namespace FocusTrack
         private const uint PROCESS_QUERY_LIMITED_INFORMATION = 0x1000;
 
         public static bool TrackPrivateModeEnabled = true;
-        public static bool TrackVPNEnabled = true;
 
         // Ignore system/host processes
         private static readonly HashSet<string> IgnoredProcesses = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
@@ -129,21 +128,7 @@ namespace FocusTrack
             string windowTitle = sb.ToString();
             //Debug.WriteLine($"[GetActiveWindowInfo] Window Title: {windowTitle}");
 
-            if (!TrackVPNEnabled)
-                return ("", "", "", null);
-
-
-            if (IgnoredVPNProcesses.Contains(proc.ProcessName))
-                return ("", "", "", null);
-
-
-            // === Check for VPN keywords ===
-            var vpnKeywords = new string[] { "vpn", "nord", "express", "surfshark", "proton" };
-            foreach (var kw in vpnKeywords)
-            {
-                if (windowTitle.IndexOf(kw, StringComparison.OrdinalIgnoreCase) >= 0)
-                    return ("", "", "", null); // skip tracking
-            }
+        
 
             // === Add this block here ===
             if (proc.ProcessName.Equals("explorer", StringComparison.OrdinalIgnoreCase))

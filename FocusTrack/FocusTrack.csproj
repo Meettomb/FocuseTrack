@@ -217,6 +217,10 @@
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
+    <Page Include="Controls\VpnAlert.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
     <Page Include="MainWindow.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
@@ -229,6 +233,9 @@
     <Compile Include="BackgroundTracker.cs" />
     <Compile Include="Controls\PrivateModeAlert.xaml.cs">
       <DependentUpon>PrivateModeAlert.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="Controls\VpnAlert.xaml.cs">
+      <DependentUpon>VpnAlert.xaml</DependentUpon>
     </Compile>
     <Compile Include="converters\ByteToImageConverter.cs" />
     <Compile Include="converters\ExeToIconConverter.cs" />
