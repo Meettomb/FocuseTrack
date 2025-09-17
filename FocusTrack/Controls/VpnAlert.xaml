@@ -34,13 +34,13 @@
 
             <!-- Title -->
             <TextBlock Grid.Column="1"
-            Text="Tracking Disabled for VPN Apps"
-            FontSize="16"
-            FontWeight="Bold"
-            Foreground="White"
-            VerticalAlignment="Center"
-            Margin="8,0,8,0"
-            TextWrapping="Wrap"/>
+                Text="VPN Tracking Disabled"
+                FontSize="16"
+                FontWeight="Bold"
+                Foreground="White"
+                VerticalAlignment="Center"
+                Margin="8,0,8,0"
+                TextWrapping="Wrap"/>
 
             <!-- Close button -->
             <Button Grid.Column="2"
@@ -53,59 +53,23 @@
         <!-- Main content -->
         <StackPanel HorizontalAlignment="Center" Grid.Row="1" Margin="0,10,0,0">
 
-            <TextBlock Text="VPN tracking is disabled for below apps." 
+            <TextBlock Text="VPN tracking is currently turned off. Apps listed below will not be monitored for activity." 
                TextWrapping="Wrap"
                FontSize="15" Foreground="LightGray" Margin="0,10,0,15"
                TextAlignment="Center"/>
 
             <!-- Two-column Grid Layout -->
             <Grid Margin="0,10,0,20">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="*" />
-                </Grid.ColumnDefinitions>
 
-                <StackPanel Grid.Column="0">
-                    <TextBlock Text="• NordVPN" FontSize="14" Foreground="White"/>
-                    <TextBlock Text="• ExpressVPN" FontSize="14" Foreground="White"/>
-                    <TextBlock Text="• Surfshark" FontSize="14" Foreground="White"/>
-                    <TextBlock Text="• ProtonVPN" FontSize="14" Foreground="White"/>
-                    <TextBlock Text="• ProtonVPN Service" FontSize="14" Foreground="White"/>
-                    <TextBlock Text="• OpenVPN" FontSize="14" Foreground="White"/>
-                    <TextBlock Text="• Ivacy" FontSize="14" Foreground="White"/>
-                    <TextBlock Text="• IVPN" FontSize="14" Foreground="White"/>
-                    <TextBlock Text="• Windscribe" FontSize="14" Foreground="White"/>
-                    <TextBlock Text="• Hide.me" FontSize="14" Foreground="White"/>
-                    <TextBlock Text="• PrivateVPN" FontSize="14" Foreground="White"/>
-                    <TextBlock Text="• HideIPVPN" FontSize="14" Foreground="White"/>
-                    <TextBlock Text="• StrongVPN" FontSize="14" Foreground="White"/>
-                    <TextBlock Text="• Cryptostorm" FontSize="14" Foreground="White"/>
-                    <TextBlock Text="• PIA (Private Internet Access)" FontSize="14" Foreground="White"/>
-                    <TextBlock Text="• PIA Service" FontSize="14" Foreground="White"/>
-                    <TextBlock Text="• CactusVPN" FontSize="14" Foreground="White"/>
+                <StackPanel>
+                    <TextBlock x:Name="VpnListTextBlock"
+                   FontSize="14"
+                   Foreground="White"
+                   TextWrapping="Wrap"
+                    FontWeight="Bold"/>
                 </StackPanel>
 
-                <StackPanel Grid.Column="1">
-                    <TextBlock Text="• Perfect Privacy" FontSize="14" Foreground="White"/>
-                    <TextBlock Text="• TorGuard" FontSize="14" Foreground="White"/>
-                    <TextBlock Text="• VPN.ac" FontSize="14" Foreground="White"/>
-                    <TextBlock Text="• AirVPN" FontSize="14" Foreground="White"/>
-                    <TextBlock Text="• Mullvad" FontSize="14" Foreground="White"/>
-                    <TextBlock Text="• AirVPN Service" FontSize="14" Foreground="White"/>
-                    <TextBlock Text="• TunnelBear" FontSize="14" Foreground="White"/>
-                    <TextBlock Text="• Tunnelblick" FontSize="14" Foreground="White"/>
-                    <TextBlock Text="• SoftEtherVPN" FontSize="14" Foreground="White"/>
-                    <TextBlock Text="• SoftEther" FontSize="14" Foreground="White"/>
-                    <TextBlock Text="• OpenConnect" FontSize="14" Foreground="White"/>
-                    <TextBlock Text="• FortiClient" FontSize="14" Foreground="White"/>
-                    <TextBlock Text="• Fortinet" FontSize="14" Foreground="White"/>
-                    <TextBlock Text="• AnyConnect" FontSize="14" Foreground="White"/>
-                    <TextBlock Text="• Cisco AnyConnect" FontSize="14" Foreground="White"/>
-                    <TextBlock Text="• FortiClient SSL VPN" FontSize="14" Foreground="White"/>
-                    <TextBlock Text="• FortiVPN" FontSize="14" Foreground="White"/>
-                    <TextBlock Text="• Fortinet VPN" FontSize="14" Foreground="White"/>
-                    <TextBlock Text="• FortiVPN Client" FontSize="14" Foreground="White"/>
-                </StackPanel>
+
             </Grid>
 
             <Button Content="OK"

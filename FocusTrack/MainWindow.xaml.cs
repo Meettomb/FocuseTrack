@@ -96,6 +96,8 @@ namespace FocusTrack
 
             this.DataContext = this;
 
+            _ = LoadSettingsAtStartupAsync();
+
             StartupHelper.AddToStartup();
        
         }
@@ -223,8 +225,19 @@ namespace FocusTrack
             MainFrame.Navigate(new AppOpenCountPage());
         }
 
-       
+        private async Task LoadSettingsAtStartupAsync()
+        {
+            var settingsList = await Database.GetUserSettings();
+            if (settingsList.Count > 0)
+            {
+                var settings = settingsList[0];
 
+                // Update tracker flags
+                ActiveWindowTracker.TrackPrivateModeEnabled = settings.TrackPrivateMode;
+                ActiveWindowTracker.TrackVPNEnabled = settings.TrackVPN;
+
+            }
+        }
 
 
 

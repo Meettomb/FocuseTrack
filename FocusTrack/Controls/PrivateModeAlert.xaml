@@ -33,7 +33,7 @@
 
             <!-- Title -->
             <TextBlock Grid.Column="1"
-               Text="Tracking Disabled in Private/Incognito Mode"
+               Text="Private Mode Detected"
                FontSize="16"
                FontWeight="Bold"
                Foreground="White"
@@ -52,7 +52,7 @@
         <!-- Main content -->
         <StackPanel HorizontalAlignment="Center" Grid.Row="1" Margin="0,10,0,0">
 
-            <TextBlock Text="Some browsers are running in Private/Incognito mode. Activity tracking is disabled in these browsers to protect your privacy." 
+            <TextBlock Text="Tracking is disabled in Private/Incognito mode. Activity in these browsers will not be monitored to protect your privacy." 
                            TextWrapping="Wrap"
                            FontSize="15" Foreground="LightGray" Margin="0,10,0,15"
                            TextAlignment="Center"/>
@@ -68,7 +68,8 @@
                         Style="{StaticResource PrimaryButtonStyle}"
                         Width="120"
                         Height="35"
-                        Click="OkButton_Click"/>
+                        Click="OkButton_Click"
+                    FontWeight="Bold"/>
         </StackPanel>
 
     </Grid>

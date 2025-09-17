@@ -124,7 +124,7 @@ namespace FocusTrack.Pages
                 TrackVPNToggle.IsChecked = UserSettings.TrackVPN;
 
                 ActiveWindowTracker.TrackPrivateModeEnabled = UserSettings.TrackPrivateMode;
-                //ActiveWindowTracker.TrackVPNEnabled = UserSettings.TrackVPN;
+                ActiveWindowTracker.TrackVPNEnabled = UserSettings.TrackVPN;
 
               
             }
@@ -149,9 +149,6 @@ namespace FocusTrack.Pages
         {
             VpnAlertPopup.IsOpen = false;
         }
-
-
-
 
         private async void TrackPrivateModeToggle_Changed(object sender, RoutedEventArgs e)
         {
@@ -187,7 +184,7 @@ namespace FocusTrack.Pages
                 UserSettings.TrackVPN = isOn;
 
                 // Update the static flag
-                //ActiveWindowTracker.TrackVPNEnabled = isOn;
+                ActiveWindowTracker.TrackVPNEnabled = isOn;
 
                 // Show popup only if it change from true -> false
                 if (!isOn && wasOn) {

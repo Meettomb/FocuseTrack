@@ -1,12 +1,13 @@
 ﻿using FocusTrack.Helpers;
+using Microsoft.Win32;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;                // for File.Exists
 using System.Linq;
+using System.Management;
 using System.Runtime.InteropServices;
 using System.Text;
-using System.IO;                // for File.Exists
-using System.Management;
 namespace FocusTrack
 {
     public static class ActiveWindowTracker
@@ -34,6 +35,8 @@ namespace FocusTrack
         private const uint PROCESS_QUERY_LIMITED_INFORMATION = 0x1000;
 
         public static bool TrackPrivateModeEnabled = true;
+        public static bool TrackVPNEnabled = true;
+
 
         // Ignore system/host processes
         private static readonly HashSet<string> IgnoredProcesses = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
@@ -91,7 +94,10 @@ namespace FocusTrack
 
         public static (string AppName, string Title, string ExePath, byte[] AppIcon) GetActiveWindowInfo()
         {
+            // Get installed VPNs
+            var installedVPNs = GetInstalledVPNs();
            
+
 
             // If user disabled tracking private mode, skip all private browsers
             if (!TrackPrivateModeEnabled && IsPrivateBrowserActive())
@@ -121,6 +127,22 @@ namespace FocusTrack
 
             string exePath = GetProcessPath(proc);
             //Debug.WriteLine($"[GetActiveWindowInfo] Process: {proc.ProcessName}, Path: {exePath}");
+
+
+            // Block installed VPN apps if TrackVPNEnabled is false
+            if (!TrackVPNEnabled)
+            {
+                foreach (var vpn in installedVPNs)
+                {
+                    if (proc.ProcessName.ToLower().Contains(vpn.ToLower()))
+                    {
+                        // Skip tracking this VPN app
+                        return ("", "", "", null);
+                    }
+                }
+            }
+
+
 
             // Get window title
             var sb = new StringBuilder(256);
@@ -415,7 +437,67 @@ namespace FocusTrack
 
 
 
-       
+        // Known VPN keywords (can be expanded)
+        private static readonly string[] vpnKeywords = new[]
+        {
+            "vpn", "nord", "express", "proton", "surfshark", "pia", "windscribe"
+        };
+
+        // Method to list all installed VPNs
+        public static List<string> GetInstalledVPNs()
+        {
+            var vpnList = new List<string>();
+            string[] registryRoots = new[]
+            {
+                @"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall",
+                @"SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall"
+            };
+
+            RegistryKey[] hives = new[] { Registry.LocalMachine, Registry.CurrentUser };
+
+            foreach (var hive in hives)
+            {
+                foreach (var keyPath in registryRoots)
+                {
+                    using (RegistryKey key = hive.OpenSubKey(keyPath))
+                    {
+                        if (key == null) continue;
+
+                        foreach (string subkeyName in key.GetSubKeyNames())
+                        {
+                            using (RegistryKey subkey = key.OpenSubKey(subkeyName))
+                            {
+                                string displayName = subkey?.GetValue("DisplayName")?.ToString() ?? "";
+                                if (string.IsNullOrWhiteSpace(displayName)) continue;
+
+                                // Only include main VPNs, not helper apps
+                                if (vpnKeywords.Any(k => displayName.ToLower() == k) && !vpnList.Contains(displayName))
+                                    vpnList.Add(displayName);
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Check Program Files folders
+            string programFiles = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles);
+            string programFilesX86 = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86);
+            string localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+
+            foreach (var folder in new[] { programFiles, programFilesX86, localAppData })
+            {
+                if (!Directory.Exists(folder)) continue;
+                foreach (var dir in Directory.GetDirectories(folder))
+                {
+                    string dirName = Path.GetFileName(dir).ToLower();
+                    if (vpnKeywords.Any(k => dirName == k) && !vpnList.Contains(dirName))
+                        vpnList.Add(Path.GetFileName(dir));
+                }
+            }
+
+            return vpnList;
+        }
+
 
 
     }

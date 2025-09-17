@@ -70,6 +70,20 @@ namespace FocusTrack.Controls
 
             // Set DataContext
             DataContext = this;
+
+            // Call the method
+            var vpnList = ActiveWindowTracker.GetInstalledVPNs();
+
+            if (vpnList.Count > 0)
+            {
+                // Join each VPN name with a new line
+                VpnListTextBlock.Text = string.Join(Environment.NewLine, vpnList);
+            }
+            else
+            {
+                VpnListTextBlock.Text = "No VPNs installed.";
+            }
+
         }
 
         private void OkButton_Click(object sender, RoutedEventArgs e)
