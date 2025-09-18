@@ -181,6 +181,7 @@ namespace FocusTrack.Pages
                 foreach (var item in allData)
                     AppUsages.Add(item);
 
+                UpdateTotalUsage();
                 LoadGraphData(todayData);
             });
         }
@@ -340,13 +341,16 @@ namespace FocusTrack.Pages
                     AppUsageGrid.ItemsSource = AppUsages;
 
                 // Calculate total usage time from displayed items
-                var totalSeconds = AppUsages.Sum(x => x.Duration.TotalSeconds);
-                var totalTime = TimeSpan.FromSeconds(totalSeconds);
-
-                TotalUsageTextBlock.Text = $"{(int)totalTime.TotalHours:D2}h {totalTime.Minutes:D2}m {totalTime.Seconds:D2}s";
+                UpdateTotalUsage();
             });
         }
 
+        private void UpdateTotalUsage()
+        {
+            var totalSeconds = AppUsages.Sum(x => x.Duration.TotalSeconds);
+            var totalTime = TimeSpan.FromSeconds(totalSeconds);
+            TotalUsageTextBlock.Text = $"{(int)totalTime.TotalHours:D2}h {totalTime.Minutes:D2}m {totalTime.Seconds:D2}s";
+        }
 
         private async Task LoadDefaultAppUsage()
         {
