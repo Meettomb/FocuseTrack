@@ -538,7 +538,7 @@ namespace FocusTrack
             public int TotalCount { get; set; }
         }
 
-        public static async Task<List<AppOpenCount>> GetAppOpenCountAsync(DateTime? start, DateTime? end)
+        public static async Task<List<AppOpenCount>> GetAppOpenCountAsync(DateTime? start, DateTime? end, int gapThresholdSeconds = 10)
         {
             var counts = new List<AppOpenCount>();
 
@@ -548,17 +548,17 @@ namespace FocusTrack
                 using (var cmd = conn.CreateCommand())
                 {
                     cmd.CommandText = @"
-                SELECT AppName, StartTime, DurationSeconds, AppIcon
+                SELECT AppName, StartTime, EndTime, DurationSeconds, AppIcon
                 FROM AppUsage
                 WHERE EndTime >= @start AND StartTime <= @end
                       AND DurationSeconds > 0
-                ORDER BY StartTime
+                ORDER BY AppName, StartTime
             ";
 
                     cmd.Parameters.AddWithValue("@start", start);
                     cmd.Parameters.AddWithValue("@end", end);
 
-                    var data = new List<(string AppName, DateTime Start, byte[] AppIcon)>();
+                    var data = new List<(string AppName, DateTime Start, DateTime End, byte[] AppIcon)>();
                     using (var reader = await cmd.ExecuteReaderAsync())
                     {
                         while (await reader.ReadAsync())
@@ -566,24 +566,24 @@ namespace FocusTrack
                             data.Add((
                                 reader["AppName"].ToString(),
                                 DateTime.Parse(reader["StartTime"].ToString()),
+                                DateTime.Parse(reader["EndTime"].ToString()),
                                 reader["AppIcon"] as byte[]
                             ));
                         }
                     }
 
-                    // Count contiguous sessions per app
                     string lastApp = null;
+                    DateTime? lastEnd = null;
+
                     foreach (var row in data)
                     {
-                        if (row.AppName != lastApp)
+                        if (row.AppName != lastApp || (lastEnd.HasValue && (row.Start - lastEnd.Value).TotalSeconds > gapThresholdSeconds))
                         {
+                            // New session for this app
                             var existing = counts.FirstOrDefault(c => c.AppName == row.AppName);
                             if (existing != null)
-                            {
                                 existing.OpenCount++;
-                            }
                             else
-                            {
                                 counts.Add(new AppOpenCount
                                 {
                                     AppName = row.AppName,
@@ -591,18 +591,16 @@ namespace FocusTrack
                                     OpenCount = 1,
                                     AppIcon = row.AppIcon
                                 });
-                            }
                         }
 
                         lastApp = row.AppName;
+                        lastEnd = row.End;
                     }
-
                 }
             }
 
             return counts.OrderByDescending(c => c.OpenCount).ToList();
         }
-
 
 
 
