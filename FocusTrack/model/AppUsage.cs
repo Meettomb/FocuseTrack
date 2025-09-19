@@ -25,5 +25,7 @@ namespace FocusTrack.Model
         public TimeSpan TotalUsage { get; set; }
         public int DurationSeconds => (int)Duration.TotalSeconds; // Helper property for charts
 
+        public int Count { get; set; }
+
     }
 }

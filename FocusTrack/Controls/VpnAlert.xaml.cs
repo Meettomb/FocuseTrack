@@ -61,7 +61,6 @@ namespace FocusTrack.Controls
             
             int vpnCount = allVpnList.Count;
 
-            Console.WriteLine($"Total VPN entries: {vpnCount}");
 
             // Split the list in half for two columns
             int middleIndex = (allVpnList.Count + 1) / 2;

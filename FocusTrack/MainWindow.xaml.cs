@@ -90,7 +90,8 @@ namespace FocusTrack
             InitializeTrackPrivateMode();
             lastStart = DateTime.Now;
 
-            timer = new System.Timers.Timer(5000);
+            timer = new System.Timers.Timer(1000);
+            timer.Elapsed += Timer_Elapsed;
             timer.AutoReset = true;
             timer.Start();
 
@@ -100,6 +101,82 @@ namespace FocusTrack
 
             StartupHelper.AddToStartup();
        
+        }
+
+        private async void Timer_Elapsed(object sender, ElapsedEventArgs e)
+        {
+            var active = ActiveWindowTracker.GetActiveWindowInfo();
+            string appName = active.AppName;
+            string windowTitle = active.Title;
+            string exePath = active.ExePath;
+
+            if (string.IsNullOrWhiteSpace(appName)) return;
+
+            string myExeName = Process.GetCurrentProcess().MainModule.FileName;
+
+            if (string.Equals(exePath, myExeName, StringComparison.OrdinalIgnoreCase))
+            {
+                if (!string.IsNullOrEmpty(lastApp))
+                {
+                    await Database.SaveSessionAsync(lastApp, lastTitle, lastStart, DateTime.Now, lastExePath);
+                    await RefreshUIAsync();
+                }
+
+                lastApp = null;
+                lastTitle = null;
+                lastStart = DateTime.Now;
+                lastExePath = null;
+                return;
+            }
+
+            if (appName != lastApp || windowTitle != lastTitle)
+            {
+                if (!string.IsNullOrEmpty(lastApp))
+                {
+                    await Database.SaveSessionAsync(lastApp, lastTitle, lastStart, DateTime.Now, lastExePath);
+                    await RefreshUIAsync();
+                }
+
+                lastApp = appName;
+                lastTitle = windowTitle;
+                lastStart = DateTime.Now;
+                lastExePath = exePath;
+            }
+        }
+
+        private async Task RefreshUIAsync()
+        {
+            await Dispatcher.InvokeAsync(async () =>
+            {
+                if (MainFrame.Content is HomePage homePage)
+                {
+                    // Refresh HomePage UI
+                    SelectedDate = DateTime.Today;
+
+                    var allData = await Database.GetAllAppUsageAsync(DateTime.Today, DateTime.Now);
+                    var todayData = await Database.GetHourlyUsageAsync(DateTime.Today, DateTime.Now);
+
+                    homePage.RangeSelecter.SelectedIndex = 0;
+                    homePage.AppUsages.Clear();
+                    foreach (var item in allData)
+                        homePage.AppUsages.Add(item);
+
+                    homePage.UpdateTotalUsage();
+                    homePage.LoadGraphData(todayData);
+                }
+                else if (MainFrame.Content is AppOpenCountPage appOpenCountPage)
+                {
+                    // Refresh AppOpenCountPage UI
+                    var start = SelectedDate.Date;
+                    var end = SelectedDate.Date.AddDays(1).AddSeconds(-1);
+                    var allData = await Database.GetAppOpenCountAsync(start, end);
+
+                    appOpenCountPage.RangeSelecter.SelectedIndex = 0;
+                    appOpenCountPage.AppUsages.Clear();
+                    foreach (var item in allData)
+                        appOpenCountPage.AppUsages.Add(item);
+                }
+            });
         }
 
 

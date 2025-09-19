@@ -153,11 +153,11 @@
         </ScrollViewer>
 
         <Popup x:Name="CalendarPopup"
-      Placement="Center"
-      StaysOpen="False"
-      AllowsTransparency="True"
-      PopupAnimation="Fade"
-      IsOpen="{Binding IsCalendarOpen}">
+          Placement="Center"
+          StaysOpen="False"
+          AllowsTransparency="True"
+          PopupAnimation="Fade"
+          IsOpen="{Binding IsCalendarOpen}">
             <Border Background="#222" CornerRadius="8" Padding="10">
                 <controls:CustomCalendar x:Name="CustomCalendarName" SelectedDate="{Binding SelectedDate, Mode=TwoWay}" />
             </Border>

@@ -101,13 +101,13 @@ namespace FocusTrack.Pages
 
             AppUsages = new ObservableCollection<AppUsage>();
 
-            // 🔹 Ensure DB file & AppUsage table exist before anything else uses it
+            //  Ensure DB file & AppUsage table exist before anything else uses it
             Database.Initialize();
 
             lastStart = DateTime.Now;
 
-            timer = new System.Timers.Timer(5000);
-            timer.Elapsed += Timer_Elapsed;
+            timer = new System.Timers.Timer(1000);
+            //timer.Elapsed += Timer_Elapsed;
             timer.AutoReset = true;
             timer.Start();
 
@@ -125,46 +125,46 @@ namespace FocusTrack.Pages
             StartupHelper.AddToStartup();
 
         }
-        private async void Timer_Elapsed(object sender, ElapsedEventArgs e)
-        {
-            var active = ActiveWindowTracker.GetActiveWindowInfo();
-            string appName = active.AppName;
-            string windowTitle = active.Title;
-            string exePath = active.ExePath;
+        //private async void Timer_Elapsed(object sender, ElapsedEventArgs e)
+        //{
+        //    var active = ActiveWindowTracker.GetActiveWindowInfo();
+        //    string appName = active.AppName;
+        //    string windowTitle = active.Title;
+        //    string exePath = active.ExePath;
 
-            if (string.IsNullOrWhiteSpace(appName)) return;
+        //    if (string.IsNullOrWhiteSpace(appName)) return;
 
-            string myExeName = Process.GetCurrentProcess().MainModule.FileName;
+        //    string myExeName = Process.GetCurrentProcess().MainModule.FileName;
 
-            if (string.Equals(exePath, myExeName, StringComparison.OrdinalIgnoreCase))
-            {
-                if (!string.IsNullOrEmpty(lastApp))
-                {
-                    await Database.SaveSessionAsync(lastApp, lastTitle, lastStart, DateTime.Now, lastExePath);
-                    await RefreshUIAsync();
-                }
+        //    if (string.Equals(exePath, myExeName, StringComparison.OrdinalIgnoreCase))
+        //    {
+        //        if (!string.IsNullOrEmpty(lastApp))
+        //        {
+        //            await Database.SaveSessionAsync(lastApp, lastTitle, lastStart, DateTime.Now, lastExePath);
+        //            await RefreshUIAsync();
+        //        }
 
-                lastApp = null;
-                lastTitle = null;
-                lastStart = DateTime.Now;
-                lastExePath = null;
-                return;
-            }
+        //        lastApp = null;
+        //        lastTitle = null;
+        //        lastStart = DateTime.Now;
+        //        lastExePath = null;
+        //        return;
+        //    }
 
-            if (appName != lastApp || windowTitle != lastTitle)
-            {
-                if (!string.IsNullOrEmpty(lastApp))
-                {
-                    await Database.SaveSessionAsync(lastApp, lastTitle, lastStart, DateTime.Now, lastExePath);
-                    await RefreshUIAsync();
-                }
+        //    if (appName != lastApp || windowTitle != lastTitle)
+        //    {
+        //        if (!string.IsNullOrEmpty(lastApp))
+        //        {
+        //            await Database.SaveSessionAsync(lastApp, lastTitle, lastStart, DateTime.Now, lastExePath);
+        //            await RefreshUIAsync();
+        //        }
 
-                lastApp = appName;
-                lastTitle = windowTitle;
-                lastStart = DateTime.Now;
-                lastExePath = exePath;
-            }
-        }
+        //        lastApp = appName;
+        //        lastTitle = windowTitle;
+        //        lastStart = DateTime.Now;
+        //        lastExePath = exePath;
+        //    }
+        //}
 
         // Helper to update grid and chart
         private async Task RefreshUIAsync()
@@ -243,7 +243,7 @@ namespace FocusTrack.Pages
         }
 
 
-        private void LoadGraphData(List<HourlyUsage> data)
+        public void LoadGraphData(List<HourlyUsage> data)
         {
             if (UsageChart == null) return;
 
@@ -345,7 +345,7 @@ namespace FocusTrack.Pages
             });
         }
 
-        private void UpdateTotalUsage()
+        public void UpdateTotalUsage()
         {
             var totalSeconds = AppUsages.Sum(x => x.Duration.TotalSeconds);
             var totalTime = TimeSpan.FromSeconds(totalSeconds);

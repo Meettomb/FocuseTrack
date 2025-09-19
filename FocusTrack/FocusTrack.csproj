@@ -230,6 +230,7 @@
       <DependentUpon>App.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="helpers\AppUsageTracker.cs" />
     <Compile Include="BackgroundTracker.cs" />
     <Compile Include="Controls\PrivateModeAlert.xaml.cs">
       <DependentUpon>PrivateModeAlert.xaml</DependentUpon>

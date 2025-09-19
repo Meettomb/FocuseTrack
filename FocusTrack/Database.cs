@@ -528,5 +528,83 @@ namespace FocusTrack
         }
 
 
+
+        public class AppOpenCount
+        {
+            public string AppName { get; set; }
+            public DateTime Day { get; set; }
+            public int OpenCount { get; set; }
+            public byte[] AppIcon { get; set; }
+            public int TotalCount { get; set; }
+        }
+
+        public static async Task<List<AppOpenCount>> GetAppOpenCountAsync(DateTime? start, DateTime? end)
+        {
+            var counts = new List<AppOpenCount>();
+
+            using (var conn = new SQLiteConnection(ConnString))
+            {
+                await conn.OpenAsync();
+                using (var cmd = conn.CreateCommand())
+                {
+                    cmd.CommandText = @"
+                SELECT AppName, StartTime, DurationSeconds, AppIcon
+                FROM AppUsage
+                WHERE EndTime >= @start AND StartTime <= @end
+                      AND DurationSeconds > 0
+                ORDER BY StartTime
+            ";
+
+                    cmd.Parameters.AddWithValue("@start", start);
+                    cmd.Parameters.AddWithValue("@end", end);
+
+                    var data = new List<(string AppName, DateTime Start, byte[] AppIcon)>();
+                    using (var reader = await cmd.ExecuteReaderAsync())
+                    {
+                        while (await reader.ReadAsync())
+                        {
+                            data.Add((
+                                reader["AppName"].ToString(),
+                                DateTime.Parse(reader["StartTime"].ToString()),
+                                reader["AppIcon"] as byte[]
+                            ));
+                        }
+                    }
+
+                    // Count contiguous sessions per app
+                    string lastApp = null;
+                    foreach (var row in data)
+                    {
+                        if (row.AppName != lastApp)
+                        {
+                            var existing = counts.FirstOrDefault(c => c.AppName == row.AppName);
+                            if (existing != null)
+                            {
+                                existing.OpenCount++;
+                            }
+                            else
+                            {
+                                counts.Add(new AppOpenCount
+                                {
+                                    AppName = row.AppName,
+                                    Day = start ?? DateTime.Today,
+                                    OpenCount = 1,
+                                    AppIcon = row.AppIcon
+                                });
+                            }
+                        }
+
+                        lastApp = row.AppName;
+                    }
+
+                }
+            }
+
+            return counts.OrderByDescending(c => c.OpenCount).ToList();
+        }
+
+
+
+
     }
 }

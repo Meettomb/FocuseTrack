@@ -59,7 +59,7 @@
                 <ControlTemplate TargetType="Button">
                     <Border Background="{TemplateBinding Background}"
                            CornerRadius="5">
-                        <materialDesign:PackIcon Kind="ChartBar"
+                        <materialDesign:PackIcon Kind="Numeric"
                                                  Foreground="{TemplateBinding Foreground}"
                                                 VerticalAlignment="Center"
                                                 HorizontalAlignment="Center"
