@@ -125,6 +125,20 @@ namespace FocusTrack
             }
         }
 
+        public class TrackingFilters
+        {
+            // Readonly so it cannot be modified accidentally
+            public static readonly string[] BlockedKeywords =
+            {
+                "[inprivate]",
+                "[incognito]",
+                "private browsing",
+                "sex",
+                "porn",
+                "hot",
+                "xxx"
+            };
+        }
 
 
         public class HourlyUsage
@@ -145,7 +159,7 @@ namespace FocusTrack
                 using (var cmd = conn.CreateCommand())
                 {
                     cmd.CommandText = @"
-                SELECT StartTime, DurationSeconds
+                SELECT StartTime, DurationSeconds, WindowTitle
                 FROM AppUsage
                 WHERE StartTime <= @end AND EndTime >= @start";
                     cmd.Parameters.AddWithValue("@start", start);
@@ -158,6 +172,12 @@ namespace FocusTrack
                             var startTime = reader.GetDateTime(0);
                             var duration = reader.GetInt32(1);
                             var endTime = startTime.AddSeconds(duration);
+                            var windowTitle = reader["WindowTitle"]?.ToString() ?? "";
+
+                            if (TrackingFilters.BlockedKeywords.Any(k =>
+                            windowTitle.IndexOf(k, StringComparison.OrdinalIgnoreCase) > 0)) {
+                                continue;
+                            }
 
                             // Clip to requested range
                             if (startTime < start) startTime = start;
@@ -200,6 +220,7 @@ namespace FocusTrack
             public string AppName { get; set; }
             public string ExePath { get; set; }
             public byte[] AppIcon { get; set; }
+            public string WindowTitle { get; set; }
             public DateTime StartTime { get; set; }
             public DateTime EndTime { get; set; }
         }
@@ -216,7 +237,7 @@ namespace FocusTrack
                     using (var cmd = conn.CreateCommand())
                     {
                         cmd.CommandText = @"
-                    SELECT AppName, ExePath, AppIcon, StartTime, EndTime
+                    SELECT AppName, ExePath, AppIcon, WindowTitle, StartTime, EndTime
                     FROM AppUsage
                     WHERE (@start IS NULL OR EndTime >= @start) AND (@end IS NULL OR StartTime <= @end)
                     ORDER BY StartTime;
@@ -238,6 +259,7 @@ namespace FocusTrack
                                         AppName = reader["AppName"].ToString(),
                                         ExePath = reader["ExePath"] as string,
                                         AppIcon = reader["AppIcon"] as byte[],
+                                        WindowTitle = reader["WindowTitle"] as string,
                                         StartTime = DateTime.SpecifyKind(startTime, DateTimeKind.Utc),
                                         EndTime = DateTime.SpecifyKind(endTime, DateTimeKind.Utc)
                                     });
@@ -247,13 +269,20 @@ namespace FocusTrack
                     }
                 }
 
-                // 2️⃣ Split sessions that span multiple days efficiently
                 // Use a list of tuples to reduce memory overhead
                 var splitData = new List<AppUsage>();
                 foreach (var session in rawData)
                 {
+                    // Skip session if AppName or Title contains blocked keyword
+                    if (TrackingFilters.BlockedKeywords.Any(k =>
+                            (session.WindowTitle?.ToLowerInvariant().Contains(k) ?? false)))
+                        continue;
+
+
+
                     DateTime current = session.StartTime;
                     DateTime sessionEnd = session.EndTime;
+
 
                     while (current.Date <= sessionEnd.Date)
                     {
@@ -375,7 +404,6 @@ namespace FocusTrack
         public static async Task<List<AppUsage>> GetAppDetailResultsByAppName(string appName, DateTime date, DateTime? start = null, DateTime? end = null)
         {
             var rawData = new List<AppUsage>();
-
             try
             {
                 using (var conn = new SQLiteConnection(ConnString))
@@ -418,10 +446,21 @@ namespace FocusTrack
                     }
                 }
 
+
                 // Split sessions across days
                 var splitData = new List<AppUsage>();
                 foreach (var session in rawData)
                 {
+                    var userSettingList = await GetUserSettings();
+                    var TrackPrivateMode = userSettingList[0].TrackPrivateMode;
+                    if (TrackPrivateMode == false)
+                    {
+
+                        if (TrackingFilters.BlockedKeywords.Any(k =>
+                            (session.WindowTitle?.ToLowerInvariant().Contains(k) ?? false)))
+                            continue;
+                    }
+
                     var current = session.StartTime;
                     while (current.Date <= session.EndTime.Date)
                     {

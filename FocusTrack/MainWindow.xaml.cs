@@ -41,6 +41,7 @@ namespace FocusTrack
 
     public partial class MainWindow : Window, INotifyPropertyChanged
     {
+      
 
         private WinForms.NotifyIcon notifyIcon;
         public ObservableCollection<AppUsage> AppUsages { get; set; }
@@ -66,6 +67,8 @@ namespace FocusTrack
                 }
             }
         }
+
+
         public event PropertyChangedEventHandler PropertyChanged;
         protected void OnPropertyChanged(string name)
         {
@@ -105,7 +108,13 @@ namespace FocusTrack
 
         private async void Timer_Elapsed(object sender, ElapsedEventArgs e)
         {
+            var userSettingList = await GetUserSettings();
+            var TrackPrivateMode = userSettingList[0].TrackPrivateMode;
+            if (TrackPrivateMode == false) {
+                
+            }
             var active = ActiveWindowTracker.GetActiveWindowInfo();
+
             string appName = active.AppName;
             string windowTitle = active.Title;
             string exePath = active.ExePath;
@@ -114,6 +123,16 @@ namespace FocusTrack
 
             string myExeName = Process.GetCurrentProcess().MainModule.FileName;
 
+            // Fetch user settings once per timer tick
+            bool trackPrivateMode = userSettingList[0].TrackPrivateMode;
+            bool isBlocked = !trackPrivateMode && Database.TrackingFilters.BlockedKeywords
+                       .Any(k => windowTitle?.ToLowerInvariant().Contains(k) ?? false);
+            // Skip tracking if blocked
+            if (isBlocked) return;
+
+                    
+            
+            // Skip tracking for your own app
             if (string.Equals(exePath, myExeName, StringComparison.OrdinalIgnoreCase))
             {
                 if (!string.IsNullOrEmpty(lastApp))
@@ -141,6 +160,10 @@ namespace FocusTrack
                 lastTitle = windowTitle;
                 lastStart = DateTime.Now;
                 lastExePath = exePath;
+                await RefreshUIAsync();
+            }
+            else {
+                await RefreshUIAsync();
             }
         }
 
@@ -279,7 +302,7 @@ namespace FocusTrack
             if (settings.Count > 0)
             {
                 ActiveWindowTracker.TrackPrivateModeEnabled = settings[0].TrackPrivateMode;
-                System.Diagnostics.Debug.WriteLine($"TrackPrivateMode loaded at startup: {settings[0].TrackPrivateMode}");
+                //System.Diagnostics.Debug.WriteLine($"TrackPrivateMode loaded at startup: {settings[0].TrackPrivateMode}");
             }
         }
 
