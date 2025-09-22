@@ -78,9 +78,37 @@ namespace FocusTrack.Pages
             VpnAlertControl.CloseClicked += VpnAlertControl_CloseClicked;
 
             this.Loaded += Page_Load;
+
+            // Close popup when window loses focus
+            Application.Current.Deactivated += (s, e) =>
+            {
+                if (TimePopup.IsOpen)
+                    TimePopup.IsOpen = false;
+            };
+            // Detect click outside popup
+            this.PreviewMouseDown += (s, e) =>
+            {
+                if (TimePopup.IsOpen)
+                {
+                    // If click was outside popup and not on TimeBorder
+                    if (!TimePopup.IsMouseOver && !TimePopup.IsMouseOver)
+                        TimePopup.IsOpen = false;
+                }
+            };
+
+            // Populate hours dynamically
+            for (int i = 1; i <= 24; i++)
+            {
+                HourList.Items.Add(new ListBoxItem { Content = i.ToString("D2") }); // D2 → 01, 02 ... 24
+            }
+
+            for (int i = 0; i < 60; i++)
+            {
+                MinuteList.Items.Add(new ListBoxItem { Content = i.ToString("D2") });
+            }
         }
 
-      
+
 
 
         private async void Page_Load(object sender, RoutedEventArgs e)
@@ -171,8 +199,6 @@ namespace FocusTrack.Pages
                 }
             }
         }
-
-
         private async void TrackVPNToggle_Changed(object sender, RoutedEventArgs e)
         {
             if (TrackVPNToggle.IsChecked.HasValue)
@@ -194,6 +220,76 @@ namespace FocusTrack.Pages
         }
 
 
+        
+        
+        
+        
+        public void FocauseModeGrid_Click(object sender, RoutedEventArgs e)
+        {
+            if (DetailsGrid.Visibility == Visibility.Collapsed)
+            {
+                DetailsGrid.Visibility = Visibility.Visible;
+                ChevronIcon.Kind = MaterialDesignThemes.Wpf.PackIconKind.ChevronUp;
+            }
+            else {
+                DetailsGrid.Visibility = Visibility.Collapsed;
+                ChevronIcon.Kind = MaterialDesignThemes.Wpf.PackIconKind.ChevronDown;
+            }
+        }
+
+        private void TimeBorder_Click(object sender, MouseButtonEventArgs e)
+        {
+            TimePopup.IsOpen = !TimePopup.IsOpen;
+        }
+
+        private void Hour_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (sender is ListBox lb && lb.SelectedItem is ListBoxItem item)
+                HourText.Text = item.Content.ToString();
+        }
+
+        private void Minute_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (sender is ListBox lb && lb.SelectedItem is ListBoxItem item)
+                MinuteText.Text = item.Content.ToString();
+        }
+
+        private void Period_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (sender is ListBox lb && lb.SelectedItem is ListBoxItem item)
+            {
+                PeriodText.Text = item.Content.ToString();
+                TimePopup.IsOpen = false; // close after AM/PM selection
+            }
+        }
+        private void HourUpIcon_Click(object sender, MouseButtonEventArgs e)
+        {
+            ScrollListBox(HourList, -1);
+        }
+        private void HourDownIcon_Click(object sender, MouseButtonEventArgs e)
+        {
+            ScrollListBox(HourList, 1);
+        }
+        private void MiniutUpIcon_Click(object sender, MouseButtonEventArgs e)
+        {
+            ScrollListBox(MinuteList, -1);
+        }
+        private void MiniutDownIcon_Click(object sender, MouseButtonEventArgs e)
+        {
+            ScrollListBox(MinuteList, 1);
+        }
+        private void ScrollListBox(ListBox listBox, int direction)
+        {
+            if (listBox.Items.Count == 0) return;
+
+            int newIndex = listBox.SelectedIndex + direction;
+
+            if (newIndex < 0) newIndex = 0;
+            if (newIndex >= listBox.Items.Count) newIndex = listBox.Items.Count - 1;
+
+            listBox.SelectedIndex = newIndex;
+            listBox.ScrollIntoView(listBox.SelectedItem);
+        }
 
 
         private void BackIcon_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)

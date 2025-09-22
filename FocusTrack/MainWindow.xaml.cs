@@ -212,11 +212,17 @@ namespace FocusTrack
  
         private void Minimize_Click(object sender, RoutedEventArgs e)
         {
+            var settingsPage = MainFrame.Content as Settings;
             this.WindowState = WindowState.Minimized;
+            if (settingsPage != null && settingsPage.TimePopup.IsOpen)
+            {
+                settingsPage.TimePopup.IsOpen = false;
+            }
         }
         
         private void Maximize_Click(object sender, RoutedEventArgs e)
         {
+            var settingsPage = MainFrame.Content as Settings;
             if (this.Tag == null || this.Tag.ToString() != "Maximized")
             {
                 // Save restore size before maximizing
@@ -225,6 +231,10 @@ namespace FocusTrack
                 this.Top = SystemParameters.WorkArea.Top;
                 this.Width = SystemParameters.WorkArea.Width;
                 this.Height = SystemParameters.WorkArea.Height;
+                if (settingsPage != null && settingsPage.TimePopup.IsOpen)
+                {
+                    settingsPage.TimePopup.IsOpen = false;
+                }
             }
             else
             {
@@ -234,6 +244,10 @@ namespace FocusTrack
                 this.Height = 700;
                 this.Left = (SystemParameters.WorkArea.Width - this.Width) / 2;
                 this.Top = (SystemParameters.WorkArea.Height - this.Height) / 2;
+                if (settingsPage != null && settingsPage.TimePopup.IsOpen)
+                {
+                    settingsPage.TimePopup.IsOpen = false;
+                }
             }
         }
 
