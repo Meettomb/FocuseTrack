@@ -11,5 +11,6 @@ namespace FocusTrack.model
         public int Id { get; set; }
         public bool TrackPrivateMode { get; set; }
         public bool TrackVPN { get; set; }
+        public string BreakTime { get; set; }
     }
 }

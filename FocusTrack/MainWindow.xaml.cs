@@ -41,7 +41,7 @@ namespace FocusTrack
 
     public partial class MainWindow : Window, INotifyPropertyChanged
     {
-      
+
 
         private WinForms.NotifyIcon notifyIcon;
         public ObservableCollection<AppUsage> AppUsages { get; set; }
@@ -103,15 +103,16 @@ namespace FocusTrack
             _ = LoadSettingsAtStartupAsync();
 
             StartupHelper.AddToStartup();
-       
+
         }
 
         private async void Timer_Elapsed(object sender, ElapsedEventArgs e)
         {
             var userSettingList = await GetUserSettings();
             var TrackPrivateMode = userSettingList[0].TrackPrivateMode;
-            if (TrackPrivateMode == false) {
-                
+            if (TrackPrivateMode == false)
+            {
+
             }
             var active = ActiveWindowTracker.GetActiveWindowInfo();
 
@@ -130,8 +131,8 @@ namespace FocusTrack
             // Skip tracking if blocked
             if (isBlocked) return;
 
-                    
-            
+
+
             // Skip tracking for your own app
             if (string.Equals(exePath, myExeName, StringComparison.OrdinalIgnoreCase))
             {
@@ -162,7 +163,8 @@ namespace FocusTrack
                 lastExePath = exePath;
                 await RefreshUIAsync();
             }
-            else {
+            else
+            {
                 await RefreshUIAsync();
             }
         }
@@ -209,7 +211,7 @@ namespace FocusTrack
             if (e.ChangedButton == MouseButton.Left)
                 this.DragMove();
         }
- 
+
         private void Minimize_Click(object sender, RoutedEventArgs e)
         {
             var settingsPage = MainFrame.Content as Settings;
@@ -219,7 +221,7 @@ namespace FocusTrack
                 settingsPage.TimePopup.IsOpen = false;
             }
         }
-        
+
         private void Maximize_Click(object sender, RoutedEventArgs e)
         {
             var settingsPage = MainFrame.Content as Settings;
@@ -281,7 +283,7 @@ namespace FocusTrack
         private void SetupNotifyIcon()
         {
             notifyIcon = new WinForms.NotifyIcon();
-            notifyIcon.Icon = new System.Drawing.Icon("D:\\Website\\Dot Net Project\\FocusTrack\\FocusTrack\\Images\\AppLogo\\FocusTrack.ico");
+            notifyIcon.Icon = new System.Drawing.Icon("D:\\Website\\Dot Net Project\\FocuseTrack\\FocusTrack\\Images\\AppLogo\\FocusTrack.ico");
             notifyIcon.Visible = true;
             notifyIcon.DoubleClick += (s, e) =>
             {
@@ -323,13 +325,15 @@ namespace FocusTrack
 
         private void SettingButton_Click(object sender, RoutedEventArgs e)
         {
-            if (!(MainFrame.Content is Settings)) { 
+            if (!(MainFrame.Content is Settings))
+            {
                 MainFrame.Navigate(new Settings());
             }
         }
         private void HomeButton_Click(object sender, RoutedEventArgs e)
         {
-            if (!(MainFrame.Content is HomePage)) { 
+            if (!(MainFrame.Content is HomePage))
+            {
                 MainFrame.Navigate(new HomePage());
             }
         }

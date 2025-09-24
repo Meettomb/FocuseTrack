@@ -35,35 +35,36 @@ namespace FocusTrack
 
                     using (var cmd = conn.CreateCommand())
                     {
-                        // Always run CREATE TABLE IF NOT EXISTS
+                        // AppUsage table
                         cmd.CommandText = @"
-                            CREATE TABLE IF NOT EXISTS AppUsage (
-                                Id INTEGER PRIMARY KEY AUTOINCREMENT,
-                                AppName TEXT,
-                                AppIcon BLOB,
-                                WindowTitle TEXT,
-                                StartTime TEXT,
-                                EndTime TEXT,
-                                DurationSeconds INTEGER,
-                                ExePath TEXT
-                            );";
+                        CREATE TABLE IF NOT EXISTS AppUsage (
+                            Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                            AppName TEXT,
+                            AppIcon BLOB,
+                            WindowTitle TEXT,
+                            StartTime TEXT,
+                            EndTime TEXT,
+                            DurationSeconds INTEGER,
+                            ExePath TEXT
+                        );";
                         cmd.ExecuteNonQuery();
 
-                        // Create UserSettings table
+                        // UserSettings table
                         cmd.CommandText = @"
-                            CREATE TABLE IF NOT EXISTS UserSettings  (
-                                Id INTEGER PRIMARY KEY AUTOINCREMENT,
-                                TrackPrivateMode BOOLEAN DEFAULT 1,
-                                TrackVPN BOOLEAN DEFAULT 1
-                            );";
+                        CREATE TABLE IF NOT EXISTS UserSettings (
+                            Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                            TrackPrivateMode INTEGER DEFAULT 1,
+                            TrackVPN INTEGER DEFAULT 1,
+                            BreakTime TEXT DEFAULT '12:30'
+                        );";
                         cmd.ExecuteNonQuery();
 
                         // Ensure at least one row exists
                         cmd.CommandText = @"
-                            INSERT INTO UserSettings (TrackPrivateMode, TrackVPN)
-                            SELECT 1, 1
-                            WHERE NOT EXISTS (SELECT 1 FROM UserSettings);
-                        ";
+                        INSERT INTO UserSettings (TrackPrivateMode, TrackVPN, BreakTime)
+                        SELECT 1, 1, '12:30'
+                        WHERE NOT EXISTS (SELECT 1 FROM UserSettings);
+                    ";
                         cmd.ExecuteNonQuery();
                     }
                 }
@@ -73,6 +74,7 @@ namespace FocusTrack
                 System.Diagnostics.Debug.WriteLine("Database initialization failed: " + ex.Message);
             }
         }
+
 
 
 
@@ -175,7 +177,8 @@ namespace FocusTrack
                             var windowTitle = reader["WindowTitle"]?.ToString() ?? "";
 
                             if (TrackingFilters.BlockedKeywords.Any(k =>
-                            windowTitle.IndexOf(k, StringComparison.OrdinalIgnoreCase) > 0)) {
+                            windowTitle.IndexOf(k, StringComparison.OrdinalIgnoreCase) > 0))
+                            {
                                 continue;
                             }
 
@@ -520,9 +523,33 @@ namespace FocusTrack
             using (var conn = new SQLiteConnection(ConnString))
             {
                 await conn.OpenAsync();
+
+                // Check if BreakTime column exists
+                bool breakTimeExists = false;
+                using (var checkCmd = conn.CreateCommand())
+                {
+                    checkCmd.CommandText = "PRAGMA table_info(UserSettings);";
+                    using (var reader = await checkCmd.ExecuteReaderAsync())
+                    {
+                        while (await reader.ReadAsync())
+                        {
+                            string columnName = reader["name"].ToString();
+                            if (columnName.Equals("BreakTime", StringComparison.OrdinalIgnoreCase))
+                            {
+                                breakTimeExists = true;
+                                break;
+                            }
+                        }
+                    }
+                }
+
                 using (var cmd = conn.CreateCommand())
                 {
-                    cmd.CommandText = "SELECT Id, TrackPrivateMode, TrackVPN FROM UserSettings LIMIT 1";
+                    // Only select BreakTime if it exists
+                    cmd.CommandText = breakTimeExists
+                        ? "SELECT Id, TrackPrivateMode, TrackVPN, BreakTime FROM UserSettings LIMIT 1"
+                        : "SELECT Id, TrackPrivateMode, TrackVPN FROM UserSettings LIMIT 1";
+
                     using (var reader = await cmd.ExecuteReaderAsync())
                     {
                         while (await reader.ReadAsync())
@@ -531,14 +558,17 @@ namespace FocusTrack
                             {
                                 Id = Convert.ToInt32(reader["Id"]),
                                 TrackPrivateMode = Convert.ToBoolean(reader["TrackPrivateMode"]),
-                                TrackVPN = Convert.ToBoolean(reader["TrackVPN"])
+                                TrackVPN = Convert.ToBoolean(reader["TrackVPN"]),
+                                BreakTime = breakTimeExists ? Convert.ToString(reader["BreakTime"]) : "12:30"
                             });
                         }
                     }
                 }
             }
+
             return rawSettings;
         }
+
         public static async Task UpdateTrackPrivateModeAsync(bool value)
         {
             using (var conn = new SQLiteConnection(ConnString))
@@ -641,7 +671,84 @@ namespace FocusTrack
             return counts.OrderByDescending(c => c.OpenCount).ToList();
         }
 
+        public static async Task EnsureBreakTimeColumn()
+        {
+            try
+            {
+                using (var conn = new SQLiteConnection(Database.ConnString))
+                {
+                    await conn.OpenAsync();
 
+                    using (var cmd = conn.CreateCommand())
+                    {
+                        // Check if BreakTime column exists
+                        cmd.CommandText = "PRAGMA table_info(UserSettings);";
+                        var reader = await cmd.ExecuteReaderAsync();
+                        bool columnExists = false;
+
+                        while (await reader.ReadAsync())
+                        {
+                            string columnName = reader["name"].ToString();
+                            if (columnName.Equals("BreakTime", StringComparison.OrdinalIgnoreCase))
+                            {
+                                columnExists = true;
+                                break;
+                            }
+                        }
+                        reader.Close();
+
+                        // Add column if missing
+                        if (!columnExists)
+                        {
+                            cmd.CommandText = "ALTER TABLE UserSettings ADD COLUMN BreakTime TEXT;";
+                            await cmd.ExecuteNonQueryAsync();
+                            System.Diagnostics.Debug.WriteLine("BreakTime column added.");
+
+                            // Initialize existing rows
+                            cmd.CommandText = "UPDATE UserSettings SET BreakTime = '12:30' WHERE BreakTime IS NULL;";
+                            await cmd.ExecuteNonQueryAsync();
+                            System.Diagnostics.Debug.WriteLine("BreakTime initialized with default value.");
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine("Failed to ensure BreakTime column: " + ex.Message);
+            }
+        }
+
+
+        public static async Task SaveBreakTimeToDatabase(string time)
+        {
+            try
+            {
+                using (var conn = new SQLiteConnection(Database.ConnString))
+                {
+                    await conn.OpenAsync();
+
+                    using (var cmd = conn.CreateCommand())
+                    {
+                        cmd.CommandText = "UPDATE UserSettings SET BreakTime = @time WHERE Id = 1;";
+                        cmd.Parameters.AddWithValue("@time", time);
+                        await cmd.ExecuteNonQueryAsync();
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine("Failed to save BreakTime: " + ex.Message);
+            }
+        }
 
     }
+
+
+
+
+
+
+
+
+
 }

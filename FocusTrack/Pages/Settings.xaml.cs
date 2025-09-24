@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.IO;
 using System.Linq;
+using System.Media;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
@@ -17,6 +18,7 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
+using System.Windows.Threading;
 
 namespace FocusTrack.Pages
 {
@@ -26,6 +28,8 @@ namespace FocusTrack.Pages
     /// </summary>
     public partial class Settings : Page
     {
+        private DispatcherTimer _timer;
+        private string _targetTime;
         private bool _isPrivateModeAlertOpen;
         public bool IsPrivateModeAlertOpen
         {
@@ -97,7 +101,7 @@ namespace FocusTrack.Pages
             };
 
             // Populate hours dynamically
-            for (int i = 1; i <= 24; i++)
+            for (int i = 0; i <= 24; i++)
             {
                 HourList.Items.Add(new ListBoxItem { Content = i.ToString("D2") }); // D2 → 01, 02 ... 24
             }
@@ -106,6 +110,7 @@ namespace FocusTrack.Pages
             {
                 MinuteList.Items.Add(new ListBoxItem { Content = i.ToString("D2") });
             }
+
         }
 
 
@@ -118,7 +123,7 @@ namespace FocusTrack.Pages
             if (settings.Count > 0)
             {
                 ActiveWindowTracker.TrackPrivateModeEnabled = settings[0].TrackPrivateMode;
-                System.Diagnostics.Debug.WriteLine($"TrackPrivateMode loaded on Settings page: {settings[0].TrackPrivateMode}");
+                //System.Diagnostics.Debug.WriteLine($"TrackPrivateMode loaded on Settings page: {settings[0].TrackPrivateMode}");
             }
 
             var transform = new TranslateTransform();
@@ -142,7 +147,7 @@ namespace FocusTrack.Pages
         private async Task LoadSettingAsync()
         {
             var settingsList = await Database.GetUserSettings();
-            System.Diagnostics.Debug.WriteLine($"Settings count loaded: {settingsList.Count}");
+            //System.Diagnostics.Debug.WriteLine($"Settings count loaded: {settingsList.Count}");
 
             if (settingsList.Count > 0)
             {
@@ -154,7 +159,24 @@ namespace FocusTrack.Pages
                 ActiveWindowTracker.TrackPrivateModeEnabled = UserSettings.TrackPrivateMode;
                 ActiveWindowTracker.TrackVPNEnabled = UserSettings.TrackVPN;
 
-              
+
+
+                if (!string.IsNullOrEmpty(UserSettings.BreakTime))
+                {
+                    var parts = UserSettings.BreakTime.Split(':');
+                    if (parts.Length >= 2)
+                    {
+                        HourText.Text = parts[0];
+                        MinuteText.Text = parts[1];
+                    }
+                }
+                else
+                {
+                    HourText.Text = "00";
+                    MinuteText.Text = "00";
+                }
+
+
             }
         }
 
@@ -213,17 +235,18 @@ namespace FocusTrack.Pages
                 ActiveWindowTracker.TrackVPNEnabled = isOn;
 
                 // Show popup only if it change from true -> false
-                if (!isOn && wasOn) {
+                if (!isOn && wasOn)
+                {
                     VpnAlertPopup.IsOpen = true;
                 }
             }
         }
 
 
-        
-        
-        
-        
+
+
+
+
         public void FocauseModeGrid_Click(object sender, RoutedEventArgs e)
         {
             if (DetailsGrid.Visibility == Visibility.Collapsed)
@@ -231,7 +254,8 @@ namespace FocusTrack.Pages
                 DetailsGrid.Visibility = Visibility.Visible;
                 ChevronIcon.Kind = MaterialDesignThemes.Wpf.PackIconKind.ChevronUp;
             }
-            else {
+            else
+            {
                 DetailsGrid.Visibility = Visibility.Collapsed;
                 ChevronIcon.Kind = MaterialDesignThemes.Wpf.PackIconKind.ChevronDown;
             }
@@ -254,14 +278,6 @@ namespace FocusTrack.Pages
                 MinuteText.Text = item.Content.ToString();
         }
 
-        private void Period_SelectionChanged(object sender, SelectionChangedEventArgs e)
-        {
-            if (sender is ListBox lb && lb.SelectedItem is ListBoxItem item)
-            {
-                PeriodText.Text = item.Content.ToString();
-                TimePopup.IsOpen = false; // close after AM/PM selection
-            }
-        }
         private void HourUpIcon_Click(object sender, MouseButtonEventArgs e)
         {
             ScrollListBox(HourList, -1);
@@ -292,9 +308,47 @@ namespace FocusTrack.Pages
         }
 
 
+        private async void TimePopup_Closed(object sender, EventArgs e)
+        {
+            var HourTextValue = HourText.Text;
+            var MinuteTextValue = MinuteText.Text;
+            var timeString = $"{HourTextValue}:{MinuteTextValue}";
+            _targetTime = $"{HourTextValue}:{MinuteTextValue}";
+            await Database.EnsureBreakTimeColumn();
+            await Database.SaveBreakTimeToDatabase(_targetTime);
+            if (_timer != null)
+            {
+                _timer.Stop();
+            }
+
+            _timer = new DispatcherTimer();
+            _timer.Interval = TimeSpan.FromSeconds(1);
+            _timer.Tick += Timer_Tick;
+            _timer.Start();
+
+        }
+
+        private void Timer_Tick(object sender, EventArgs e)
+        {
+            if (TimeSpan.TryParse(_targetTime, out TimeSpan targetTime))
+            {
+                TimeSpan now = DateTime.Now.TimeOfDay;
+
+                if (now.Hours == targetTime.Hours && now.Minutes == targetTime.Minutes)
+                {
+                    _timer.Stop();
+                    SystemSounds.Beep.Play();
+                    System.Diagnostics.Debug.WriteLine("Time to Break!");
+                }
+            }
+        }
+
+
+
         private void BackIcon_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
-            if (!NavigationService.CanGoBack) { 
+            if (!NavigationService.CanGoBack)
+            {
                 return;
             }
 
@@ -310,10 +364,12 @@ namespace FocusTrack.Pages
                 AccelerationRatio = 0.2,
                 DecelerationRatio = 0.8
             };
-            animation.Completed += (s,a) =>NavigationService.GoBack();
+            animation.Completed += (s, a) => NavigationService.GoBack();
 
             transform.BeginAnimation(TranslateTransform.XProperty, animation);
         }
+
+
 
 
 
