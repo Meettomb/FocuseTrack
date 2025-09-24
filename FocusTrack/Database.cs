@@ -138,7 +138,8 @@ namespace FocusTrack
                 "sex",
                 "porn",
                 "hot",
-                "xxx"
+                "xxx",
+                "tube"
             };
         }
 

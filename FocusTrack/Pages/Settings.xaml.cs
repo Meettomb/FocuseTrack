@@ -19,6 +19,7 @@ using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
 using System.Windows.Threading;
+using WinForms = System.Windows.Forms;
 
 namespace FocusTrack.Pages
 {
@@ -110,6 +111,15 @@ namespace FocusTrack.Pages
             {
                 MinuteList.Items.Add(new ListBoxItem { Content = i.ToString("D2") });
             }
+            // Get reference to MainWindow
+            MainWindow mainWindow = Application.Current.MainWindow as MainWindow;
+
+
+            // Initialize timer
+            _timer = new System.Windows.Threading.DispatcherTimer();
+            _timer.Interval = TimeSpan.FromSeconds(1); // check every second
+            _timer.Tick += Timer_Tick;
+            _timer.Start();
 
         }
 
@@ -337,11 +347,40 @@ namespace FocusTrack.Pages
                 if (now.Hours == targetTime.Hours && now.Minutes == targetTime.Minutes)
                 {
                     _timer.Stop();
-                    SystemSounds.Beep.Play();
+
+                    // Play sound
+                    string soundPath = @"D:\Website\Dot Net Project\FocuseTrack\FocusTrack\Sounds\school-bell.wav";
+                    if (File.Exists(soundPath))
+                    {
+                        var player = new System.Media.SoundPlayer(soundPath);
+                        player.Play();
+                    }
+                    else
+                    {
+                        System.Media.SystemSounds.Beep.Play();
+                    }
+                    // Show custom topmost notification
+                    Application.Current.Dispatcher.Invoke(() =>
+                    {   
+                        var notification = new BreakNotificationWindow(soundPath);
+                        notification.Show();
+                    });
+
+                    // Show desktop notification using MainWindow's NotifyIcon
+                    MainWindow mainWindow = Application.Current.MainWindow as MainWindow;
+                    if (mainWindow?.notifyIcon != null)
+                    {
+                        mainWindow.notifyIcon.BalloonTipTitle = "Break Time!";
+                        mainWindow.notifyIcon.BalloonTipText = "It's time to take a short break.";
+                        mainWindow.notifyIcon.BalloonTipIcon = WinForms.ToolTipIcon.Info;
+                        mainWindow.notifyIcon.ShowBalloonTip(5000);
+                    }
+
                     System.Diagnostics.Debug.WriteLine("Time to Break!");
                 }
             }
         }
+
 
 
 

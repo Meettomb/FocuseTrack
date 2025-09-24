@@ -41,9 +41,10 @@ namespace FocusTrack
 
     public partial class MainWindow : Window, INotifyPropertyChanged
     {
+        public Frame AppFrame => MainFrame;
 
 
-        private WinForms.NotifyIcon notifyIcon;
+        public WinForms.NotifyIcon notifyIcon;
         public ObservableCollection<AppUsage> AppUsages { get; set; }
         public ImageSource IconImage { get; set; }
         private System.Timers.Timer timer;  // avoid ambiguity
@@ -280,11 +281,13 @@ namespace FocusTrack
             });
         }
 
-        private void SetupNotifyIcon()
+        public void SetupNotifyIcon()
         {
             notifyIcon = new WinForms.NotifyIcon();
-            notifyIcon.Icon = new System.Drawing.Icon("D:\\Website\\Dot Net Project\\FocuseTrack\\FocusTrack\\Images\\AppLogo\\FocusTrack.ico");
+            notifyIcon.Icon = new System.Drawing.Icon(@"D:\Website\Dot Net Project\FocuseTrack\FocusTrack\Images\AppLogo\FocusTrack.ico");
             notifyIcon.Visible = true;
+
+            // Double-click on tray icon to show main window
             notifyIcon.DoubleClick += (s, e) =>
             {
                 this.Show();
@@ -292,21 +295,44 @@ namespace FocusTrack
                 this.ShowInTaskbar = true;
             };
 
+            // Balloon tip click opens Settings page
+            notifyIcon.BalloonTipClicked += (s, e) =>
+            {
+                // Use fully qualified WPF Application
+                System.Windows.Application.Current.Dispatcher.Invoke(() =>
+                {
+                    // Show main window
+                    this.Show();
+                    this.WindowState = WindowState.Normal;
+                    this.ShowInTaskbar = true;
+
+                    // Navigate to Settings page
+                    AppFrame.Navigate(new Pages.Settings());
+                });
+            };
+
+
+
             var menu = new WinForms.ContextMenuStrip();
-            menu.Items.Add("Open", null, (s, e) =>
+
+            var openItem = new WinForms.ToolStripMenuItem("Open");
+            openItem.Click += (s, e) =>
             {
                 this.Show();
                 this.WindowState = WindowState.Normal;
                 this.ShowInTaskbar = true;
-            });
+            };
 
-            // Call WPF shutdown instead of WinForms Application.Exit()
-            menu.Items.Add("Exit", null, (s, e) =>
+            var exitItem = new WinForms.ToolStripMenuItem("Exit");
+            exitItem.Click += (s, e) =>
             {
                 notifyIcon.Visible = false;
                 notifyIcon.Dispose();
                 System.Windows.Application.Current.Shutdown(); // proper WPF shutdown
-            });
+            };
+
+            menu.Items.Add(openItem);
+            menu.Items.Add(exitItem);
 
             notifyIcon.ContextMenuStrip = menu;
         }
