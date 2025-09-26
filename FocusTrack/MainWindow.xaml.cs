@@ -103,8 +103,6 @@ namespace FocusTrack
 
             _ = LoadSettingsAtStartupAsync();
 
-            StartupHelper.AddToStartup();
-
         }
 
         private async void Timer_Elapsed(object sender, ElapsedEventArgs e)

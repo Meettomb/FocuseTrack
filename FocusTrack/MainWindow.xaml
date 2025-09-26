@@ -10,8 +10,8 @@
         WindowStyle="None"
         ResizeMode="NoResize"
         AllowsTransparency="False"
-        Background="#10131C"
         Title="Focus Track"
+        Background="#10131C"
         Height="450"
         Width="800"
         Icon="/Images/AppLogo/FocusTrack.ico">

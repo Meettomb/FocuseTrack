@@ -110,7 +110,6 @@ namespace FocusTrack.Pages
 
             };
 
-            StartupHelper.AddToStartup();
         }
         private string lastAppName = "";
         private string lastWindowTitle = "";
