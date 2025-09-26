@@ -132,14 +132,70 @@ namespace FocusTrack
             // Readonly so it cannot be modified accidentally
             public static readonly string[] BlockedKeywords =
             {
-                "[inprivate]",
-                "[incognito]",
+                 // General private mode keywords
+                "inprivate",
+                "incognito",
                 "private browsing",
-                "sex",
-                "porn",
-                "hot",
-                "xxx",
-                "tube"
+                "privacy mode",
+                "stealth mode",
+                "secret mode",
+
+                // Chrome
+                "incognito - google chrome",
+                "new incognito tab",
+                "incognito tab",
+                "you’ve gone incognito",
+
+                // Edge
+                "inprivate browsing",
+                "new inprivate tab",
+                "inprivate window",
+                "you’re browsing in inprivate",
+
+                // Firefox
+                "private browsing - mozilla firefox",
+                "new private window",
+                "private tab",
+                "firefox private browsing",
+
+                // Safari (macOS + iOS)
+                "private browsing - safari",
+                "new private tab",
+                "safari private",
+                "this is a private browsing window",
+
+                // Opera
+                "private browsing - opera",
+                "new private window",
+                "opera private",
+
+                // Brave
+                "private browsing - brave",
+                "new private tab",
+                "brave private",
+
+                // Samsung Internet
+                "secret mode - samsung internet",
+                "new secret tab",
+                "samsung internet secret",
+
+                // Generic tab messages (commonly seen when opening a private window/tab)
+                "you’re browsing privately",
+                "you’ve gone incognito",
+                "private tab",
+                "new private tab",
+                "secret tab",
+                "new secret tab",
+                // General adult terms
+                "porn", "xxx", "sex", "nude", "adult", "cam", "escort",
+                "hentai", "nsfw", "red light", "explicit",
+
+                // Popular categories often in titles/domains
+                "milf", "teen", "gay", "lesbian", "anal", "fetish", "bdsm",
+
+                // Common adult site brand names (examples, not full list)
+                "xvideos", "xhamster", "pornhub", "xnxx", "onlyfans",
+                "redtube", "youporn", "brazzers", "bangbros", "chaturbate"
             };
         }
 
