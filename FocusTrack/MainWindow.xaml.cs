@@ -30,6 +30,8 @@ using System.Windows.Shapes;
 using static FocusTrack.Database;
 using MessageBox = System.Windows.MessageBox;
 using WinForms = System.Windows.Forms;
+using System.IO;
+using IOPath = System.IO.Path;
 
 
 namespace FocusTrack
@@ -282,7 +284,9 @@ namespace FocusTrack
         public void SetupNotifyIcon()
         {
             notifyIcon = new WinForms.NotifyIcon();
-            notifyIcon.Icon = new System.Drawing.Icon(@"D:\Website\Dot Net Project\FocuseTrack\FocusTrack\Images\AppLogo\FocusTrack.ico");
+            string iconPath = IOPath.Combine(AppDomain.CurrentDomain.BaseDirectory, "Images", "AppLogo", "FocusTrack.ico");
+            notifyIcon.Icon = new System.Drawing.Icon(iconPath);
+
             notifyIcon.Visible = true;
 
             // Double-click on tray icon to show main window

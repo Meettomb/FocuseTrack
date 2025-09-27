@@ -67,7 +67,7 @@ namespace FocusTrack
         private static readonly Dictionary<string, (string FriendlyName, string IconPath)> UwpApps =
             new Dictionary<string, (string, string)>(StringComparer.OrdinalIgnoreCase)
             {
-                { "WhatsApp", ("WhatsApp", "Assets/Icons/whatsapp.png") },
+                { "WhatsApp", ("WhatsApp", "Assets/Icons/WhatsApp.png") },
                 { "Spotify", ("Spotify", "Assets/Icons/spotify.png") },
                 { "Microsoft Teams", ("Microsoft Teams", "Assets/Icons/teams.png") },
                 { "Telegram", ("Telegram", "Assets/Icons/telegram.png") },

@@ -442,7 +442,9 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <Resource Include="Images\AppLogo\FocusTrack.png" />
-    <Resource Include="Images\AppLogo\FocusTrack.ico" />
+    <Content Include="Images\AppLogo\FocusTrack.ico">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
     <Content Include="Images\app.svg">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
