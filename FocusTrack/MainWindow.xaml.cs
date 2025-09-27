@@ -261,6 +261,19 @@ namespace FocusTrack
             this.ShowInTaskbar = false;
         }
 
+        protected override void OnClosing(System.ComponentModel.CancelEventArgs e)
+        {
+            // Prevent the app from fully closing
+            e.Cancel = true;
+
+            // Hide the window
+            this.Hide();
+            this.ShowInTaskbar = false;
+
+            // Optional: show a tray balloon tip
+            notifyIcon?.ShowBalloonTip(1000, "FocusTrack", "App is running in the background", System.Windows.Forms.ToolTipIcon.Info);
+        }
+
         private void ExitApplication()
         {
             notifyIcon.Visible = false;

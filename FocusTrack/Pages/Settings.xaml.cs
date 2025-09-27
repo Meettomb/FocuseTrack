@@ -349,10 +349,11 @@ namespace FocusTrack.Pages
                     _timer.Stop();
 
                     // Play sound
-                    string soundPath = @"D:\Website\Dot Net Project\FocuseTrack\FocusTrack\Sounds\school-bell.wav";
+                    //string soundPath = @"D:\Website\Dot Net Project\FocuseTrack\FocusTrack\Sounds\school-bell.wav";
+                    string soundPath = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Sounds", "school-bell.wav");
                     if (File.Exists(soundPath))
                     {
-                        var player = new System.Media.SoundPlayer(soundPath);
+                        System.Media.SoundPlayer player = new System.Media.SoundPlayer(soundPath);
                         player.Play();
                     }
                     else
