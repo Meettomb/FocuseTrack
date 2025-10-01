@@ -108,6 +108,13 @@ namespace FocusTrack
             InitializeTrackPrivateMode();
             lastStart = DateTime.Now;
 
+
+            // Refresh UI when window gains focus
+            this.Activated += MainWindow_Activated;
+
+            // Optionally, refresh when the window is first loaded
+            this.ContentRendered += MainWindow_ContentRendered;
+
             timer = new System.Timers.Timer(1000);
             timer.Elapsed += Timer_Elapsed;
             timer.AutoReset = true;
@@ -155,7 +162,6 @@ namespace FocusTrack
                 if (!string.IsNullOrEmpty(lastApp))
                 {
                     await Database.SaveSessionAsync(lastApp, lastTitle, lastStart, DateTime.Now, lastExePath);
-                    await RefreshUIAsync();
                 }
 
                 lastApp = null;
@@ -170,18 +176,12 @@ namespace FocusTrack
                 if (!string.IsNullOrEmpty(lastApp))
                 {
                     await Database.SaveSessionAsync(lastApp, lastTitle, lastStart, DateTime.Now, lastExePath);
-                    await RefreshUIAsync();
                 }
 
                 lastApp = appName;
                 lastTitle = windowTitle;
                 lastStart = DateTime.Now;
                 lastExePath = exePath;
-                await RefreshUIAsync();
-            }
-            else
-            {
-                await RefreshUIAsync();
             }
         }
 
@@ -219,6 +219,17 @@ namespace FocusTrack
                 }
             });
         }
+
+        private async void MainWindow_Activated(object sender, EventArgs e)
+        {
+            await RefreshUIAsync();
+        }
+
+        private async void MainWindow_ContentRendered(object sender, EventArgs e)
+        {
+            await RefreshUIAsync();
+        }
+
 
 
         // For dragging the window
