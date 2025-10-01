@@ -183,6 +183,7 @@ namespace FocusTrack
                 lastStart = DateTime.Now;
                 lastExePath = exePath;
             }
+
         }
 
         private async Task RefreshUIAsync()

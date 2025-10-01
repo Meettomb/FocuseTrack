@@ -124,66 +124,7 @@ namespace FocusTrack.Pages
 
 
         }
-        //private async void Timer_Elapsed(object sender, ElapsedEventArgs e)
-        //{
-        //    var active = ActiveWindowTracker.GetActiveWindowInfo();
-        //    string appName = active.AppName;
-        //    string windowTitle = active.Title;
-        //    string exePath = active.ExePath;
-
-        //    if (string.IsNullOrWhiteSpace(appName)) return;
-
-        //    string myExeName = Process.GetCurrentProcess().MainModule.FileName;
-
-        //    if (string.Equals(exePath, myExeName, StringComparison.OrdinalIgnoreCase))
-        //    {
-        //        if (!string.IsNullOrEmpty(lastApp))
-        //        {
-        //            await Database.SaveSessionAsync(lastApp, lastTitle, lastStart, DateTime.Now, lastExePath);
-        //            await RefreshUIAsync();
-        //        }
-
-        //        lastApp = null;
-        //        lastTitle = null;
-        //        lastStart = DateTime.Now;
-        //        lastExePath = null;
-        //        return;
-        //    }
-
-        //    if (appName != lastApp || windowTitle != lastTitle)
-        //    {
-        //        if (!string.IsNullOrEmpty(lastApp))
-        //        {
-        //            await Database.SaveSessionAsync(lastApp, lastTitle, lastStart, DateTime.Now, lastExePath);
-        //            await RefreshUIAsync();
-        //        }
-
-        //        lastApp = appName;
-        //        lastTitle = windowTitle;
-        //        lastStart = DateTime.Now;
-        //        lastExePath = exePath;
-        //    }
-        //}
-
-        // Helper to update grid and chart
-        private async Task RefreshUIAsync()
-        {
-            SelectedDate = DateTime.Today;
-            var allData = await Database.GetAllAppUsageAsync(DateTime.Today, DateTime.Now);
-            var todayData = await Database.GetHourlyUsageAsync(DateTime.Today, DateTime.Now);
-
-            Dispatcher.Invoke(() =>
-            {
-                // Update ComboBox safely on UI thread
-                RangeSelecter.SelectedIndex = 0;
-                AppUsages.Clear();
-                foreach (var item in allData)
-                    AppUsages.Add(item);
-
-                UpdateTotalUsage();
-                LoadGraphData(todayData);
-            });
-        }
+     
 
 
         private async void RangeSelectot_SelectionChanged(object sender, SelectionChangedEventArgs e)

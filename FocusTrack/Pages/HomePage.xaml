@@ -125,7 +125,7 @@
                                            VerticalAlignment="Center"
                                            FontSize="15"
                                            />
-                                    <TextBlock Grid.Column="2" Text="{Binding Duration}" 
+                                    <TextBlock Grid.Column="2" Text="{Binding DurationFormatted}" 
                                            Margin="20,0" 
                                            Foreground="White"
                                            VerticalAlignment="Center"

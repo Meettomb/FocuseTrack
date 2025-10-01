@@ -27,5 +27,15 @@ namespace FocusTrack.Model
 
         public int Count { get; set; }
 
+
+        // Formatted string for UI display
+        public string DurationFormatted
+        {
+            get
+            {
+                return $"{(int)Duration.TotalHours:D2}h {Duration.Minutes:D2}m {Duration.Seconds:D2}s";
+            }
+        }
+
     }
 }
