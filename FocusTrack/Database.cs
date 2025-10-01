@@ -3,6 +3,7 @@ using FocusTrack.Model;
 using System;
 using System.Collections.Generic;
 using System.Data.Common;
+using System.Data.SqlClient;
 using System.Data.SQLite;
 using System.Drawing;
 using System.Drawing.Imaging;
@@ -55,14 +56,15 @@ namespace FocusTrack
                             Id INTEGER PRIMARY KEY AUTOINCREMENT,
                             TrackPrivateMode INTEGER DEFAULT 1,
                             TrackVPN INTEGER DEFAULT 1,
-                            BreakTime TEXT DEFAULT '12:30'
+                            BreakTime TEXT DEFAULT '00:00',
+                            NotifyBreakEveryTime INTEGER DEFAULT 0
                         );";
                         cmd.ExecuteNonQuery();
 
                         // Ensure at least one row exists
                         cmd.CommandText = @"
-                        INSERT INTO UserSettings (TrackPrivateMode, TrackVPN, BreakTime)
-                        SELECT 1, 1, '12:30'
+                        INSERT INTO UserSettings (TrackPrivateMode, TrackVPN, BreakTime, NotifyBreakEveryTime)
+                        SELECT 1, 1, '00:00', 0
                         WHERE NOT EXISTS (SELECT 1 FROM UserSettings);
                     ";
                         cmd.ExecuteNonQuery();
@@ -583,6 +585,7 @@ namespace FocusTrack
 
                 // Check if BreakTime column exists
                 bool breakTimeExists = false;
+                bool NotifyBreakEveryTimeExists = false;
                 using (var checkCmd = conn.CreateCommand())
                 {
                     checkCmd.CommandText = "PRAGMA table_info(UserSettings);";
@@ -594,7 +597,10 @@ namespace FocusTrack
                             if (columnName.Equals("BreakTime", StringComparison.OrdinalIgnoreCase))
                             {
                                 breakTimeExists = true;
-                                break;
+                            }
+                            if (columnName.Equals("NotifyBreakEveryTime", StringComparison.OrdinalIgnoreCase))
+                            {
+                                NotifyBreakEveryTimeExists = true;
                             }
                         }
                     }
@@ -603,9 +609,14 @@ namespace FocusTrack
                 using (var cmd = conn.CreateCommand())
                 {
                     // Only select BreakTime if it exists
-                    cmd.CommandText = breakTimeExists
-                        ? "SELECT Id, TrackPrivateMode, TrackVPN, BreakTime FROM UserSettings LIMIT 1"
-                        : "SELECT Id, TrackPrivateMode, TrackVPN FROM UserSettings LIMIT 1";
+                    if (breakTimeExists && NotifyBreakEveryTimeExists)
+                        cmd.CommandText = "SELECT Id, TrackPrivateMode, TrackVPN, BreakTime, NotifyBreakEveryTime FROM UserSettings LIMIT 1";
+                    else if (breakTimeExists)
+                        cmd.CommandText = "SELECT Id, TrackPrivateMode, TrackVPN, BreakTime FROM UserSettings LIMIT 1";
+                    else
+                        cmd.CommandText = "SELECT Id, TrackPrivateMode, TrackVPN FROM UserSettings LIMIT 1";
+
+
 
                     using (var reader = await cmd.ExecuteReaderAsync())
                     {
@@ -616,7 +627,8 @@ namespace FocusTrack
                                 Id = Convert.ToInt32(reader["Id"]),
                                 TrackPrivateMode = Convert.ToBoolean(reader["TrackPrivateMode"]),
                                 TrackVPN = Convert.ToBoolean(reader["TrackVPN"]),
-                                BreakTime = breakTimeExists ? Convert.ToString(reader["BreakTime"]) : "12:30"
+                                BreakTime = breakTimeExists ? Convert.ToString(reader["BreakTime"]) : "00:00",
+                                NotifyBreakEveryTime = NotifyBreakEveryTimeExists ? Convert.ToBoolean(reader["NotifyBreakEveryTime"]) : false
                             });
                         }
                     }
@@ -759,12 +771,10 @@ namespace FocusTrack
                         {
                             cmd.CommandText = "ALTER TABLE UserSettings ADD COLUMN BreakTime TEXT;";
                             await cmd.ExecuteNonQueryAsync();
-                            System.Diagnostics.Debug.WriteLine("BreakTime column added.");
 
                             // Initialize existing rows
-                            cmd.CommandText = "UPDATE UserSettings SET BreakTime = '12:30' WHERE BreakTime IS NULL;";
+                            cmd.CommandText = "UPDATE UserSettings SET BreakTime = '00:00' WHERE BreakTime IS NULL;";
                             await cmd.ExecuteNonQueryAsync();
-                            System.Diagnostics.Debug.WriteLine("BreakTime initialized with default value.");
                         }
                     }
                 }
@@ -774,6 +784,60 @@ namespace FocusTrack
                 System.Diagnostics.Debug.WriteLine("Failed to ensure BreakTime column: " + ex.Message);
             }
         }
+        public static async Task EnsureNotifyBreakEveryTimeColumn()
+        {
+            try
+            {
+                using (var conn = new SQLiteConnection(Database.ConnString))
+                {
+                    await conn.OpenAsync();
+
+                    bool columnExists = false;
+                    using (var cmd = conn.CreateCommand())
+                    {
+                        cmd.CommandText = "PRAGMA table_info(UserSettings);";
+                        using (var reader = await cmd.ExecuteReaderAsync())
+                        {
+                            while (await reader.ReadAsync())
+                            {
+                                string columnName = reader["name"].ToString();
+                                if (columnName.Equals("NotifyBreakEveryTime", StringComparison.OrdinalIgnoreCase))
+                                {
+                                    columnExists = true;
+                                    break;
+                                }
+                            }
+                        }
+                    }
+
+                    // Add the column if missing
+                    if (!columnExists)
+                    {
+                        using (var cmd = conn.CreateCommand())
+                        {
+                            cmd.CommandText = @"ALTER TABLE UserSettings ADD COLUMN NotifyBreakEveryTime INTEGER DEFAULT 0;";
+                            await cmd.ExecuteNonQueryAsync();
+                        }
+                    }
+                    else
+                    {
+                        System.Diagnostics.Debug.WriteLine("NotifyBreakEveryTime column already exists.");
+                    }
+
+                    // Ensure existing rows are initialized to 0
+                    using (var cmd = conn.CreateCommand())
+                    {
+                        cmd.CommandText = "UPDATE UserSettings SET NotifyBreakEveryTime = 0 WHERE NotifyBreakEveryTime IS NULL;";
+                        await cmd.ExecuteNonQueryAsync();
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine("Failed to ensure NotifyBreakEveryTime column: " + ex.Message);
+            }
+        }
+
 
 
         public static async Task SaveBreakTimeToDatabase(string time)
@@ -797,6 +861,20 @@ namespace FocusTrack
                 System.Diagnostics.Debug.WriteLine("Failed to save BreakTime: " + ex.Message);
             }
         }
+
+        public static async Task UpdateNotifyEveryTime(bool value)
+        {
+            using (var conn = new SQLiteConnection(ConnString))
+            {
+                await conn.OpenAsync();
+                using (var cmd = conn.CreateCommand()) {
+                    cmd.CommandText = "UPDATE UserSettings SET NotifyBreakEveryTime = @value WHERE Id = 1;";
+                    cmd.Parameters.AddWithValue("@value", value ? 1 : 0);
+                    await cmd.ExecuteNonQueryAsync();
+                }
+            }
+        }
+
 
     }
 

@@ -30,6 +30,10 @@ namespace FocusTrack.Pages
     public partial class Settings : Page
     {
         private DispatcherTimer _timer;
+        private TimeSpan _interval;
+        private DateTime _nextNotifyTime;
+
+
         private string _targetTime;
         private bool _isPrivateModeAlertOpen;
         public bool IsPrivateModeAlertOpen
@@ -102,7 +106,7 @@ namespace FocusTrack.Pages
             };
 
             // Populate hours dynamically
-            for (int i = 0; i <= 24; i++)
+            for (int i = 0; i <= 6; i++)
             {
                 HourList.Items.Add(new ListBoxItem { Content = i.ToString("D2") }); // D2 → 01, 02 ... 24
             }
@@ -114,12 +118,8 @@ namespace FocusTrack.Pages
             // Get reference to MainWindow
             MainWindow mainWindow = Application.Current.MainWindow as MainWindow;
 
+           
 
-            // Initialize timer
-            _timer = new System.Windows.Threading.DispatcherTimer();
-            _timer.Interval = TimeSpan.FromSeconds(1); // check every second
-            _timer.Tick += Timer_Tick;
-            _timer.Start();
 
         }
 
@@ -133,7 +133,6 @@ namespace FocusTrack.Pages
             if (settings.Count > 0)
             {
                 ActiveWindowTracker.TrackPrivateModeEnabled = settings[0].TrackPrivateMode;
-                //System.Diagnostics.Debug.WriteLine($"TrackPrivateMode loaded on Settings page: {settings[0].TrackPrivateMode}");
             }
 
             var transform = new TranslateTransform();
@@ -154,11 +153,9 @@ namespace FocusTrack.Pages
 
         // Make this async
 
-        private async Task LoadSettingAsync()
+        public async Task LoadSettingAsync()
         {
             var settingsList = await Database.GetUserSettings();
-            //System.Diagnostics.Debug.WriteLine($"Settings count loaded: {settingsList.Count}");
-
             if (settingsList.Count > 0)
             {
                 UserSettings = settingsList[0];
@@ -169,8 +166,7 @@ namespace FocusTrack.Pages
                 ActiveWindowTracker.TrackPrivateModeEnabled = UserSettings.TrackPrivateMode;
                 ActiveWindowTracker.TrackVPNEnabled = UserSettings.TrackVPN;
 
-
-
+                // Load BreakTime
                 if (!string.IsNullOrEmpty(UserSettings.BreakTime))
                 {
                     var parts = UserSettings.BreakTime.Split(':');
@@ -186,13 +182,15 @@ namespace FocusTrack.Pages
                     MinuteText.Text = "00";
                 }
 
-
+                // Set value from UserSettings
+                NotifyEveryTime.IsChecked = UserSettings.NotifyBreakEveryTime;
+             
             }
         }
 
+
         private void PrivateModeAlertControl_OkClicked(object sender, EventArgs e)
         {
-            System.Diagnostics.Debug.WriteLine("PrivateModeAlert OK clicked.");
             PrivateModeAlertPopup.IsOpen = false;
         }
         private void PrivateModeAlertControl_CloseClicked(object sender, EventArgs e)
@@ -249,6 +247,17 @@ namespace FocusTrack.Pages
                 {
                     VpnAlertPopup.IsOpen = true;
                 }
+            }
+        }
+
+        private async void NotifyEveryTime_Changed(object sender, RoutedEventArgs e)
+        {
+            await Database.EnsureNotifyBreakEveryTimeColumn();
+            if (NotifyEveryTime.IsChecked.HasValue)
+            {
+                bool isOn = NotifyEveryTime.IsChecked.Value;
+                await Database.UpdateNotifyEveryTime(isOn);
+                UserSettings.NotifyBreakEveryTime = isOn; // <-- update in-memory
             }
         }
 
@@ -320,71 +329,19 @@ namespace FocusTrack.Pages
 
         private async void TimePopup_Closed(object sender, EventArgs e)
         {
-            var HourTextValue = HourText.Text;
-            var MinuteTextValue = MinuteText.Text;
-            var timeString = $"{HourTextValue}:{MinuteTextValue}";
-            _targetTime = $"{HourTextValue}:{MinuteTextValue}";
+            var hour = HourText.Text;
+            var minute = MinuteText.Text;
+
+            var timeString = $"{hour}:{minute}";
+            _targetTime = timeString;
+
             await Database.EnsureBreakTimeColumn();
             await Database.SaveBreakTimeToDatabase(_targetTime);
-            if (_timer != null)
-            {
-                _timer.Stop();
-            }
 
-            _timer = new DispatcherTimer();
-            _timer.Interval = TimeSpan.FromSeconds(1);
-            _timer.Tick += Timer_Tick;
-            _timer.Start();
-
+          
         }
 
-        private void Timer_Tick(object sender, EventArgs e)
-        {
-            if (TimeSpan.TryParse(_targetTime, out TimeSpan targetTime))
-            {
-                TimeSpan now = DateTime.Now.TimeOfDay;
-
-                if (now.Hours == targetTime.Hours && now.Minutes == targetTime.Minutes)
-                {
-                    _timer.Stop();
-
-                    // Play sound
-                    //string soundPath = @"D:\Website\Dot Net Project\FocuseTrack\FocusTrack\Sounds\school-bell.wav";
-                    string soundPath = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Sounds", "school-bell.wav");
-                    if (File.Exists(soundPath))
-                    {
-                        System.Media.SoundPlayer player = new System.Media.SoundPlayer(soundPath);
-                        player.Play();
-                    }
-                    else
-                    {
-                        System.Media.SystemSounds.Beep.Play();
-                    }
-                    // Show custom topmost notification
-                    Application.Current.Dispatcher.Invoke(() =>
-                    {   
-                        var notification = new BreakNotificationWindow(soundPath);
-                        notification.Show();
-                    });
-
-                    // Show desktop notification using MainWindow's NotifyIcon
-                    MainWindow mainWindow = Application.Current.MainWindow as MainWindow;
-                    if (mainWindow?.notifyIcon != null)
-                    {
-                        mainWindow.notifyIcon.BalloonTipTitle = "Break Time!";
-                        mainWindow.notifyIcon.BalloonTipText = "It's time to take a short break.";
-                        mainWindow.notifyIcon.BalloonTipIcon = WinForms.ToolTipIcon.Info;
-                        mainWindow.notifyIcon.ShowBalloonTip(5000);
-                    }
-
-                    System.Diagnostics.Debug.WriteLine("Time to Break!");
-                }
-            }
-        }
-
-
-
-
+     
         private void BackIcon_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
             if (!NavigationService.CanGoBack)

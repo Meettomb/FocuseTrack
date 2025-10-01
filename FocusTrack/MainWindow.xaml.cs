@@ -1,5 +1,6 @@
 ﻿using FocusTrack.Controls;
 using FocusTrack.helpers;
+using FocusTrack.model;
 using FocusTrack.Model;
 using FocusTrack.Pages;
 using LiveChartsCore;
@@ -12,7 +13,9 @@ using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Data.SQLite;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
+using System.Media;
 using System.Text;
 using System.Threading.Tasks;
 using System.Timers;
@@ -27,11 +30,11 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
+using System.Windows.Threading;
 using static FocusTrack.Database;
+using IOPath = System.IO.Path;
 using MessageBox = System.Windows.MessageBox;
 using WinForms = System.Windows.Forms;
-using System.IO;
-using IOPath = System.IO.Path;
 
 
 namespace FocusTrack
@@ -43,11 +46,20 @@ namespace FocusTrack
 
     public partial class MainWindow : Window, INotifyPropertyChanged
     {
+        private DispatcherTimer _timer;
+        private TimeSpan _interval;
+        private DateTime _nextNotifyTime;
+
+
+        private System.Threading.Timer _settingsWatcherTimer;
+        private string _lastBreakTime;
+        private bool _lastNotifyBreakEveryTime;
         public Frame AppFrame => MainFrame;
 
 
         public WinForms.NotifyIcon notifyIcon;
         public ObservableCollection<AppUsage> AppUsages { get; set; }
+        public UserSettings UserSettings { get; set; }
         public ImageSource IconImage { get; set; }
         private System.Timers.Timer timer;  // avoid ambiguity
         private string lastApp = "";
@@ -104,6 +116,9 @@ namespace FocusTrack
             this.DataContext = this;
 
             _ = LoadSettingsAtStartupAsync();
+
+            _ = LoadSettingsAndStartTimer(); // Start notifications immediately
+            StartSettingsWatcher(); // Also start DB watcher for live updates
 
         }
 
@@ -270,8 +285,6 @@ namespace FocusTrack
             this.Hide();
             this.ShowInTaskbar = false;
 
-            // Optional: show a tray balloon tip
-            notifyIcon?.ShowBalloonTip(1000, "FocusTrack", "App is running in the background", System.Windows.Forms.ToolTipIcon.Info);
         }
 
         private void ExitApplication()
@@ -359,7 +372,6 @@ namespace FocusTrack
             if (settings.Count > 0)
             {
                 ActiveWindowTracker.TrackPrivateModeEnabled = settings[0].TrackPrivateMode;
-                //System.Diagnostics.Debug.WriteLine($"TrackPrivateMode loaded at startup: {settings[0].TrackPrivateMode}");
             }
         }
 
@@ -397,6 +409,139 @@ namespace FocusTrack
 
             }
         }
+
+
+
+
+
+
+        private void StartSettingsWatcher()
+        {
+            _settingsWatcherTimer = new System.Threading.Timer(async _ =>
+            {
+                try
+                {
+                    var settingsList = await Database.GetUserSettings();
+                    if (settingsList.Count > 0)
+                    {
+                        var newSettings = settingsList[0];
+
+                        if (newSettings.BreakTime != _lastBreakTime ||
+                            newSettings.NotifyBreakEveryTime != _lastNotifyBreakEveryTime)
+                        {
+                            _lastBreakTime = newSettings.BreakTime;
+                            _lastNotifyBreakEveryTime = newSettings.NotifyBreakEveryTime;
+
+                            await RefreshSettingsAsync();
+
+                            // Switch back to UI thread for timer + notification setup
+                            System.Windows.Application.Current.Dispatcher.Invoke(() =>
+                            {
+                                _nextNotifyTime = DateTime.Now.Add(_interval);
+                                StartTimer();
+                            });
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine("Settings watcher error: " + ex.Message);
+                }
+            }, null, TimeSpan.Zero, TimeSpan.FromSeconds(10)); // check every 10s
+        }
+
+
+        public async System.Threading.Tasks.Task RefreshSettingsAsync()
+        {
+            var settingsList = await Database.GetUserSettings();
+            if (settingsList.Count > 0)
+            {
+                UserSettings = settingsList[0];
+
+                // Parse BreakTime
+                if (!TimeSpan.TryParse(UserSettings.BreakTime, out _interval))
+                {
+                    _interval = TimeSpan.Zero; // invalid value → disable notifications
+                }
+
+                // Keep watcher in sync
+                _lastBreakTime = UserSettings.BreakTime;
+                _lastNotifyBreakEveryTime = UserSettings.NotifyBreakEveryTime;
+
+                // Stop timer if interval is zero
+                System.Windows.Application.Current.Dispatcher.Invoke(() =>
+                {
+                    if (_interval.TotalMinutes <= 0)
+                    {
+                        _timer?.Stop();
+                        _nextNotifyTime = DateTime.MaxValue; // never fires
+                    }
+                });
+            }
+        }
+
+
+        private async System.Threading.Tasks.Task LoadSettingsAndStartTimer()
+        {
+            await RefreshSettingsAsync();
+            _nextNotifyTime = DateTime.Now.Add(_interval);
+            StartTimer();
+        }
+
+        private void StartTimer()
+        {
+            if (_timer != null)
+                _timer.Stop();
+
+            if (_interval.TotalMinutes <= 0)
+                return;
+
+            _timer = new DispatcherTimer();
+            _timer.Interval = TimeSpan.FromSeconds(1);
+            _timer.Tick += Timer_Tick;
+            _timer.Start();
+        }
+
+        private void Timer_Tick(object sender, EventArgs e)
+        {
+            if (DateTime.Now >= _nextNotifyTime)
+            {
+                ShowNotification();
+
+                if (UserSettings.NotifyBreakEveryTime)
+                {
+                    _nextNotifyTime = DateTime.Now.Add(_interval);
+                }
+                else
+                {
+                    _timer.Stop();
+                }
+            }
+        }
+
+        private void ShowNotification()
+        {
+            string soundPath = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Sounds", "notification.wav");
+
+            if (File.Exists(soundPath))
+                new SoundPlayer(soundPath).Play();
+            else
+                SystemSounds.Beep.Play();
+
+            var notification = new BreakNotificationWindow(soundPath);
+            notification.Show();
+
+            if (notifyIcon != null)
+            {
+                notifyIcon.BalloonTipTitle = "Break Time!";
+                notifyIcon.BalloonTipText = "It's time to take a short break.";
+                notifyIcon.BalloonTipIcon = System.Windows.Forms.ToolTipIcon.Info;
+                notifyIcon.ShowBalloonTip(5000);
+            }
+
+        }
+
+      
 
 
 
