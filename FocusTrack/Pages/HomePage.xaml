@@ -119,6 +119,7 @@
 
                                     <Image Grid.Column="0" Width="35" Height="35" Margin="20 0 0 0"
                                     Source="{Binding AppIcon, Converter={StaticResource ByteToImageConverter}}"/>
+                                    
                                     <TextBlock Grid.Column="1" Text="{Binding AppName}" 
                                            Margin="20,0" 
                                            Foreground="White"

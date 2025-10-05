@@ -1,4 +1,6 @@
 ﻿using FocusTrack.Controls;
+using FocusTrack.helpers;
+using FocusTrack.Helpers;
 using FocusTrack.model;
 using FocusTrack.Properties;
 using System;
@@ -8,6 +10,7 @@ using System.IO;
 using System.Linq;
 using System.Media;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
@@ -117,10 +120,7 @@ namespace FocusTrack.Pages
             }
             // Get reference to MainWindow
             MainWindow mainWindow = Application.Current.MainWindow as MainWindow;
-
-           
-
-
+            
         }
 
 
@@ -148,6 +148,7 @@ namespace FocusTrack.Pages
             };
             transform.BeginAnimation(TranslateTransform.XProperty, animation);
             await LoadSettingAsync();
+
 
         }
 
@@ -366,8 +367,31 @@ namespace FocusTrack.Pages
             transform.BeginAnimation(TranslateTransform.XProperty, animation);
         }
 
+        private void NavigateToPrivacyPage(object sender, RoutedEventArgs e)
+        {
+            var transform = new TranslateTransform();
+            this.RenderTransform = transform;
 
+            double pageWidth = this.ActualWidth;
+            var animation = new System.Windows.Media.Animation.DoubleAnimation
+            {
+                From = pageWidth,
+                To = 0,
+                Duration = TimeSpan.FromMilliseconds(300),
+                AccelerationRatio = 0.2,
+                DecelerationRatio = 0.8
+            };
 
+            animation.Completed += (s, a) =>
+            {
+                // Navigate only after animation completes
+                NavigationService.Navigate(new PrivacyPolicyPage());
+            };
+
+            transform.BeginAnimation(TranslateTransform.XProperty, animation);
+        }
+
+        
 
 
 

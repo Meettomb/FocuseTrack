@@ -126,7 +126,6 @@ namespace FocusTrack
 
             _ = LoadSettingsAndStartTimer(); // Start notifications immediately
             StartSettingsWatcher(); // Also start DB watcher for live updates
-
         }
 
         private async void Timer_Elapsed(object sender, ElapsedEventArgs e)

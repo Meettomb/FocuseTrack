@@ -491,7 +491,6 @@ namespace FocusTrack
             string programFiles = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles);
             string programFilesX86 = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86);
             string localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
-
             foreach (var folder in new[] { programFiles, programFilesX86, localAppData })
             {
                 if (!Directory.Exists(folder)) continue;
@@ -507,6 +506,6 @@ namespace FocusTrack
         }
 
 
-
+    
     }
 }

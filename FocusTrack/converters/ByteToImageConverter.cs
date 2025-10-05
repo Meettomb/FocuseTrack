@@ -19,13 +19,18 @@ namespace FocusTrack.Converters
                     image.CacheOption = BitmapCacheOption.OnLoad;
                     image.StreamSource = ms;
                     image.EndInit();
+                    image.Freeze(); // Important
                     return image;
                 }
             }
-            return null;
+
+            // Return default icon if bytes is null
+            return new BitmapImage(new Uri("pack://application:,,,/Assets/Icons/default.png"));
         }
 
-        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) => throw new NotImplementedException();
+        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+            => throw new NotImplementedException();
     }
+
 
 }

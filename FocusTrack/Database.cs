@@ -202,6 +202,10 @@ namespace FocusTrack
         }
 
 
+
+
+      
+
         public class HourlyUsage
         {
             public DateTime Date { get; set; }
@@ -276,7 +280,26 @@ namespace FocusTrack
         }
 
 
-
+        private static readonly Dictionary<string, (string FriendlyName, string IconPath)> AppIcons = new Dictionary<string, (string FriendlyName, string IconPath)>()
+        {
+            { "WhatsApp", ("WhatsApp", "Assets/Icons/WhatsApp.png") },
+            { "Spotify", ("Spotify", "Assets/Icons/spotify.png") },
+            { "Microsoft Teams", ("Microsoft Teams", "Assets/Icons/teams.png") },
+            { "Telegram", ("Telegram", "Assets/Icons/telegram.png") },
+            { "Mail", ("Mail", "Assets/Icons/mail.png") },
+            { "Calendar", ("Calendar", "Assets/Icons/calendar.png") },
+            { "Photos", ("Photos", "Assets/Icons/photos.png") },
+            { "Xbox", ("Xbox", "Assets/Icons/xbox.png") },
+            { "Groove Music", ("Groove Music", "Assets/Icons/groove.png") },
+            { "Movies & TV", ("Movies & TV", "Assets/Icons/movies.png") },
+            { "Sticky Notes", ("Sticky Notes", "Assets/Icons/stickynotes.png") },
+            { "OneNote", ("OneNote", "Assets/Icons/onenote.png") },
+            { "Skype", ("Skype", "Assets/Icons/skype.png") },
+            { "Microsoft Store", ("Microsoft Store", "Assets/Icons/store.png") },
+            { "Weather", ("Weather", "Assets/Icons/weather.png") },
+            { "Maps", ("Maps", "Assets/Icons/maps.png") },
+            { "Alarms & Clock", ("Alarms & Clock", "Assets/Icons/clock.png") }
+        };
         private class AppUsageRaw
         {
             public string AppName { get; set; }
@@ -396,6 +419,24 @@ namespace FocusTrack
                         ? AppFriendlyNames[newestRecord.AppName]
                         : newestRecord.AppName;
 
+                    // If AppIcon is null, try to get it from AppIcons dictionary
+                    byte[] appIcon = newestRecord.AppIcon;
+                    if ((appIcon == null || appIcon.Length == 0) && AppIcons.TryGetValue(newestRecord.AppName, out var iconInfo))
+                    {
+                        try
+                        {
+                            string iconPath = iconInfo.IconPath;
+                            if (File.Exists(iconPath))
+                            {
+                                appIcon = File.ReadAllBytes(iconPath);
+                            }
+                        }
+                        catch
+                        {
+                            appIcon = null; // fallback if reading fails
+                        }
+                    }
+
                     var totalDuration = TimeSpan.FromSeconds(g.Sum(x => x.Duration.TotalSeconds));
 
                     DateTime dateValue = isSingleDayRange
@@ -406,7 +447,7 @@ namespace FocusTrack
                     {
                         AppName = friendlyAppName,
                         ExePath = newestRecord.ExePath,
-                        AppIcon = newestRecord.AppIcon,
+                        AppIcon = appIcon,
                         Date = dateValue,
                         Duration = totalDuration
                     };
@@ -423,7 +464,7 @@ namespace FocusTrack
                 return new List<AppUsage>();
             }
         }
-
+   
         private static readonly Dictionary<string, string> AppFriendlyNames = new Dictionary<string, string>()
         {
              { "chrome", "Google Chrome" },
@@ -715,6 +756,25 @@ namespace FocusTrack
 
                     foreach (var row in data)
                     {
+                        byte[] appIcon = row.AppIcon;
+
+                        //  Try to get icon from dictionary if missing
+                        if ((appIcon == null || appIcon.Length == 0) && AppIcons.TryGetValue(row.AppName, out var iconInfo))
+                        {
+                            try
+                            {
+                                string iconPath = iconInfo.IconPath;
+                                if (File.Exists(iconPath))
+                                {
+                                    appIcon = File.ReadAllBytes(iconPath);
+                                }
+                            }
+                            catch
+                            {
+                                appIcon = null; // fallback if something fails
+                            }
+                        }
+
                         if (row.AppName != lastApp || (lastEnd.HasValue && (row.Start - lastEnd.Value).TotalSeconds > gapThresholdSeconds))
                         {
                             // New session for this app
@@ -727,7 +787,7 @@ namespace FocusTrack
                                     AppName = row.AppName,
                                     Day = start ?? DateTime.Today,
                                     OpenCount = 1,
-                                    AppIcon = row.AppIcon
+                                    AppIcon = appIcon
                                 });
                         }
 
