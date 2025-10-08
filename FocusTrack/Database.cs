@@ -433,8 +433,11 @@ namespace FocusTrack
                     {
                         try
                         {
+
                             string baseDir = AppDomain.CurrentDomain.BaseDirectory;
                             string iconPath = Path.Combine(baseDir,iconInfo.IconPath);
+
+
                             if (File.Exists(iconPath))
                             {
                                 appIcon = File.ReadAllBytes(iconPath);
