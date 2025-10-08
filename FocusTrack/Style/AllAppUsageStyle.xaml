@@ -1,0 +1,43 @@
+﻿<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <Style x:Key="AppUsageGridStyle" TargetType="DataGrid">
+        <Setter Property="Background" Value="#222"/>
+        <Setter Property="Foreground" Value="White"/>
+        <Setter Property="BorderBrush" Value="#333"/>
+        <Setter Property="RowHeight" Value="50"/>
+        <Setter Property="GridLinesVisibility" Value="Horizontal"/>
+        <Setter Property="HeadersVisibility" Value="Column"/>
+        <Setter Property="CanUserAddRows" Value="False"/>
+        <Setter Property="IsReadOnly" Value="True"/>
+        <Setter Property="ScrollViewer.VerticalScrollBarVisibility" Value="Hidden"/>
+        <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Hidden"/>
+        <Setter Property="RowBackground" Value="#222"/>
+        <Setter Property="AlternatingRowBackground" Value="#2a2a2a"/>
+        <Setter Property="SelectionMode" Value="Single"/>
+        <Setter Property="SelectionUnit" Value="FullRow"/>
+        <Setter Property="BorderThickness" Value="1"/>
+    </Style>
+
+
+    <Style x:Key="AppUsageGridColumnHeaderStyle" TargetType="DataGridColumnHeader">
+        <Setter Property="Background" Value="#333"/>
+        <!-- Header background -->
+        <Setter Property="Foreground" Value="White"/>
+        <!-- Header text color -->
+        <Setter Property="FontSize" Value="14"/>
+        <!-- Header font size -->
+        <Setter Property="FontWeight" Value="Bold"/>
+        <!-- Bold text -->
+        <Setter Property="HorizontalContentAlignment" Value="Center"/>
+        <!-- Center text -->
+        <Setter Property="VerticalContentAlignment" Value="Center"/>
+        <Setter Property="Height" Value="40"/>
+        <!-- Header height -->
+        <Setter Property="BorderBrush" Value="#222"/>
+        <!-- Optional border color -->
+        <Setter Property="BorderThickness" Value="0,0,0,1"/>
+        <!-- Optional bottom border -->
+    </Style>
+
+</ResourceDictionary>
