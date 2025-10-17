@@ -6,6 +6,7 @@ using FocusTrack.Pages;
 using LiveChartsCore;
 using LiveChartsCore.SkiaSharpView;
 using LiveChartsCore.SkiaSharpView.Painting;
+using Microsoft.Win32;
 using SkiaSharp;
 using System;
 using System.Collections.Generic;
@@ -15,6 +16,7 @@ using System.Data.SQLite;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Management;
 using System.Media;
 using System.Text;
 using System.Threading.Tasks;
@@ -46,6 +48,11 @@ namespace FocusTrack
 
     public partial class MainWindow : Window, INotifyPropertyChanged
     {
+        private ManagementEventWatcher lidWatcher;
+        private static DateTime lastWakeTime = DateTime.MinValue;
+        public bool isSystemSleeping = false;
+        private DateTime? sleepStartTime = null;
+
         private DispatcherTimer _timer;
         private TimeSpan _interval;
         private DateTime _nextNotifyTime;
@@ -94,7 +101,6 @@ namespace FocusTrack
         {
             InitializeComponent();
 
-
             MainFrame.Navigate(new HomePage());
             // Create tray icon
             SetupNotifyIcon();
@@ -126,10 +132,38 @@ namespace FocusTrack
 
             _ = LoadSettingsAndStartTimer(); // Start notifications immediately
             StartSettingsWatcher(); // Also start DB watcher for live updates
+
+
+            // Subscribe to power mode changes
+            SystemEvents.PowerModeChanged += OnPowerModeChanged;
+
+            // Subscribe to session switch (lock/unlock)
+            SystemEvents.SessionSwitch += OnSessionSwitch;
+            StartLidWatcher();
+
+
         }
 
         private async void Timer_Elapsed(object sender, ElapsedEventArgs e)
         {
+            if (isSystemSleeping)
+            {
+                if (!string.IsNullOrEmpty(lastApp) && sleepStartTime.HasValue)
+                {
+                    await Database.SaveSessionAsync(lastApp, lastTitle, lastStart, sleepStartTime.Value, lastExePath);
+                    Debug.WriteLine($"[SAVE] Session ended due to sleep at {sleepStartTime.Value}");
+                }
+
+                lastApp = null;
+                lastTitle = null;
+                lastStart = DateTime.Now;
+                lastExePath = null;
+
+                return; // Skip saving during sleep
+            }
+
+
+
             var userSettingList = await GetUserSettings();
             var TrackPrivateMode = userSettingList[0].TrackPrivateMode;
             if (TrackPrivateMode == false)
@@ -552,7 +586,90 @@ namespace FocusTrack
 
         }
 
-      
+
+
+        // To Detect Sleep/Wake and Lock/Unlock events
+        private void OnPowerModeChanged(object sender, PowerModeChangedEventArgs e)
+        {
+            switch (e.Mode)
+            {
+                case PowerModes.Suspend:
+                    isSystemSleeping = true;
+                    sleepStartTime = DateTime.Now;
+                    Debug.WriteLine("System is going to sleep.");
+                    break;
+
+                case PowerModes.Resume:
+                    isSystemSleeping = false;
+                    sleepStartTime = null;
+                    Debug.WriteLine("System has resumed from sleep.");
+                    break;
+            }
+        }
+
+        private void OnSessionSwitch(object sender, SessionSwitchEventArgs e)
+        {
+            if (e.Reason == SessionSwitchReason.SessionLock)
+            {
+                isSystemSleeping = true;
+                sleepStartTime = DateTime.Now;
+                Debug.WriteLine($"[EVENT] Session locked at {DateTime.Now}");
+            }
+            else if (e.Reason == SessionSwitchReason.SessionUnlock)
+            {
+                isSystemSleeping = false;
+                sleepStartTime = null;
+                Debug.WriteLine($"[EVENT] Session unlocked at {DateTime.Now}");
+            }
+        }
+
+        private void StartLidWatcher()
+        {
+            try
+            {
+                string query = "SELECT * FROM Win32_PowerManagementEvent";
+                lidWatcher = new ManagementEventWatcher(new WqlEventQuery(query));
+                lidWatcher.EventArrived += LidWatcher_EventArrived;
+                lidWatcher.Start();
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine("Error starting lid watcher: " + ex.Message);
+            }
+        }
+
+        private void LidWatcher_EventArrived(object sender, EventArrivedEventArgs e)
+        {
+            ushort eventType = (ushort)e.NewEvent.Properties["EventType"].Value;
+
+            if (eventType == 11)
+            {
+                isSystemSleeping = true;
+                sleepStartTime = DateTime.Now;
+            }
+            else if (eventType == 12)
+            {
+                isSystemSleeping = false;
+                sleepStartTime = null;
+            }
+        }
+
+
+        protected override void OnClosed(EventArgs e)
+        {
+            SystemEvents.PowerModeChanged -= OnPowerModeChanged;
+            SystemEvents.SessionSwitch -= OnSessionSwitch;
+
+            if (lidWatcher != null)
+            {
+                lidWatcher.Stop();
+                lidWatcher.Dispose();
+            }
+
+            base.OnClosed(e);
+        }
+
+
 
 
 

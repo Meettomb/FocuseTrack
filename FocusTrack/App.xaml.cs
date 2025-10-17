@@ -16,7 +16,7 @@ namespace FocusTrack
         protected override void OnStartup(StartupEventArgs e)
         {
             base.OnStartup(e);
-
+            //ActiveWindowTracker.InitializePowerEventHandlers();
             // Ensure DB + table exist before UI
             FocusTrack.Database.Initialize();
 
