@@ -812,22 +812,24 @@ namespace FocusTrack
 
                     foreach (var row in data)
                     {
-                        byte[] appIcon = row.AppIcon;
+                        string friendlyAppName = AppFriendlyNames.ContainsKey(row.AppName)
+                           ? AppFriendlyNames[row.AppName]
+                           : row.AppName;
 
-                        //  Try to get icon from dictionary if missing
+                        byte[] appIcon = row.AppIcon;
                         if ((appIcon == null || appIcon.Length == 0) && AppIcons.TryGetValue(row.AppName, out var iconInfo))
                         {
                             try
                             {
-                                string iconPath = iconInfo.IconPath;
+                                string baseDir = AppDomain.CurrentDomain.BaseDirectory;
+                                string iconPath = Path.Combine(baseDir, iconInfo.IconPath);
+
                                 if (File.Exists(iconPath))
-                                {
                                     appIcon = File.ReadAllBytes(iconPath);
-                                }
                             }
                             catch
                             {
-                                appIcon = null; // fallback if something fails
+                                appIcon = null;
                             }
                         }
 
