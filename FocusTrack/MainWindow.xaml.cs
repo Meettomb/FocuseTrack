@@ -671,6 +671,14 @@ namespace FocusTrack
             base.OnClosed(e);
         }
 
+        private void Header_MouseDown(object sender, MouseButtonEventArgs e)
+        {
+            if (e.ChangedButton == MouseButton.Left)
+            {
+                this.DragMove(); // Allows dragging the window
+            }
+        }
+
 
 
 

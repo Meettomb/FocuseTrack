@@ -26,7 +26,7 @@
         </Grid.RowDefinitions>
 
         <!-- Header (fixed, not scrollable) -->
-        <Border Background="#222" Grid.Row="0" Height="auto" VerticalAlignment="Top">
+        <Border Background="#222" Grid.Row="0" Height="auto" VerticalAlignment="Top" MouseDown="Header_MouseDown">
             <Grid>
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="10 0 0 0">
                     <Image Source="/Images/AppLogo/FocusTrack.png" Width="27" Height="Auto"/>
