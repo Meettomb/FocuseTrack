@@ -50,7 +50,6 @@
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
-                <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
 
             <Border
@@ -367,41 +366,6 @@
             </Border>
 
 
-            <Border
-              Grid.Row="3"
-              CornerRadius="10"
-              Background="#222"
-              Padding="10, 0"
-              Margin="0, 5"
-                MouseLeftButtonDown="NavigateToPrivacyPage">
-
-                <Grid
-                    Height="50"
-                    VerticalAlignment="Center">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="Auto"/>
-                    </Grid.ColumnDefinitions>
-
-                    <TextBlock Grid.Column="0"
-                         Text="Privacy Policy"
-                         Foreground="White"
-                         FontSize="16"
-                         VerticalAlignment="Center"
-                         FontWeight="Bold"/>
-                    <materialDesign:PackIcon
-                         Kind="ChevronRight"
-                         VerticalAlignment="Center"
-                         HorizontalAlignment="Center"
-                         Width="22"
-                         Height="22"
-                         Grid.Column="1"
-                         Foreground="White"
-                         Margin="0 0 15 0"/>
-
-                </Grid>
-
-            </Border>
 
 
 

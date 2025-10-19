@@ -367,29 +367,7 @@ namespace FocusTrack.Pages
             transform.BeginAnimation(TranslateTransform.XProperty, animation);
         }
 
-        private void NavigateToPrivacyPage(object sender, RoutedEventArgs e)
-        {
-            var transform = new TranslateTransform();
-            this.RenderTransform = transform;
-
-            double pageWidth = this.ActualWidth;
-            var animation = new System.Windows.Media.Animation.DoubleAnimation
-            {
-                From = pageWidth,
-                To = 0,
-                Duration = TimeSpan.FromMilliseconds(300),
-                AccelerationRatio = 0.2,
-                DecelerationRatio = 0.8
-            };
-
-            animation.Completed += (s, a) =>
-            {
-                // Navigate only after animation completes
-                NavigationService.Navigate(new PrivacyPolicyPage());
-            };
-
-            transform.BeginAnimation(TranslateTransform.XProperty, animation);
-        }
+      
 
         
 
