@@ -352,6 +352,13 @@ namespace FocusTrack.Pages
             
         }
 
+        private async void RefreshButton_Click(object sender, RoutedEventArgs e)
+        {
+            await LoadDefaultAppUsage();
+            await LoadDefaultGraph();
+
+            SelectedDate = DateTime.Today;
+        }
 
     }
 }

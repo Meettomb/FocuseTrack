@@ -249,6 +249,9 @@ namespace FocusTrack
                     appOpenCountPage.AppUsages.Clear();
                     foreach (var item in allData)
                         appOpenCountPage.AppUsages.Add(item);
+
+
+                    appOpenCountPage.SelectedDate = DateTime.Today;
                 }
             });
         }
