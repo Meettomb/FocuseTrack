@@ -111,7 +111,6 @@ namespace FocusTrack.Pages
             timer.AutoReset = true;
             timer.Start();
 
-            this.DataContext = this;
 
             this.Loaded += async (_, __) =>
             {
@@ -125,8 +124,6 @@ namespace FocusTrack.Pages
 
         }
      
-
-
         private async void RangeSelectot_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             if (RangeSelecter.SelectedItem is ComboBoxItem selected)
@@ -264,7 +261,7 @@ namespace FocusTrack.Pages
 
 
         // Get all AppUsage data
-        private async Task LoadAllAppUsageAsync(DateTime? start, DateTime? end)
+        public async Task LoadAllAppUsageAsync(DateTime? start, DateTime? end)
         {
             var allData = await Database.GetAllAppUsageAsync(start, end) ?? new List<AppUsage>();
 
@@ -276,6 +273,7 @@ namespace FocusTrack.Pages
                 AppUsages.Clear();
                 foreach (var item in allData)
                     AppUsages.Add(item);
+
 
                 if (AppUsageGrid != null && AppUsageGrid.ItemsSource == null)
                     AppUsageGrid.ItemsSource = AppUsages;
@@ -292,7 +290,7 @@ namespace FocusTrack.Pages
             TotalUsageTextBlock.Text = $"{(int)totalTime.TotalHours:D2}h {totalTime.Minutes:D2}m {totalTime.Seconds:D2}s";
         }
 
-        private async Task LoadDefaultAppUsage()
+        public async Task LoadDefaultAppUsage()
         {
             await LoadAllAppUsageAsync(DateTime.Today, DateTime.Now);
         }

@@ -225,8 +225,6 @@ namespace FocusTrack
             {
                 if (MainFrame.Content is HomePage homePage)
                 {
-                    // Refresh HomePage UI
-                    SelectedDate = DateTime.Today;
 
                     var allData = await Database.GetAllAppUsageAsync(DateTime.Today, DateTime.Now);
                     var todayData = await Database.GetHourlyUsageAsync(DateTime.Today, DateTime.Now);
@@ -238,6 +236,7 @@ namespace FocusTrack
 
                     homePage.UpdateTotalUsage();
                     homePage.LoadGraphData(todayData);
+                    homePage.SelectedDate = DateTime.Today;
                 }
                 else if (MainFrame.Content is AppOpenCountPage appOpenCountPage)
                 {

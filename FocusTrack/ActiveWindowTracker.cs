@@ -51,16 +51,18 @@ namespace FocusTrack
             "wininit",
             "services",
             "lsass",
+            "syastem", 
+            
+            
+            // Shell / host processes
+            "shellexperiencehost.exe",
+            "applicationframehost.exe",
+            "runtimebroker.exe",
+            "searchhost.exe",
+            "textinputhost.exe",
+            "lockapp.exe",
         };
-        private static readonly HashSet<string> IgnoredVPNProcesses = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
-        {
-            // Common VPN applications
-            "nordvpn", "expressvpn", "surfshark", "protonvpn", "protonvpnservice", "openvpn",
-            "ivacy", "ivpn", "windscribe", "hide.me", "privatevpn", "hideipvpn", "strongvpn", "cryptostorm",
-            "pia", "pia_service", "cactusvpn", "perfectprivacy", "torguard", "vpn.ac", "airvpn", "mullvad",
-            "airvpnservice", "tunnelbear", "tunnelblick", "softethervpn", "softether", "openconnect", "forticlient",
-            "fortinet", "anyconnect", "ciscoanyconnect", "forticlientsslvpn", "fortivpn", "fortinetvpn", "fortivpnclient"
-        };
+
 
 
         // Map for known UWP apps running under ApplicationFrameHost
@@ -107,9 +109,6 @@ namespace FocusTrack
             }
 
 
-
-
-
             IntPtr hwnd = GetForegroundWindow();
             if (hwnd == IntPtr.Zero) return ("", "", "", null);
 
@@ -126,11 +125,10 @@ namespace FocusTrack
                 return ("Unknown", "", "", null);
             }
 
-          
-
             // Ignore unwanted system processes
             if (IgnoredProcesses.Contains(proc.ProcessName))
                 return ("", "", "", null);
+
 
             string exePath = GetProcessPath(proc);
             //Debug.WriteLine($"[GetActiveWindowInfo] Process: {proc.ProcessName}, Path: {exePath}");
@@ -157,16 +155,23 @@ namespace FocusTrack
             string windowTitle = sb.ToString();
             //Debug.WriteLine($"[GetActiveWindowInfo] Window Title: {windowTitle}");
 
-        
 
-            // === Add this block here ===
-            if (proc.ProcessName.Equals("explorer", StringComparison.OrdinalIgnoreCase))
+
+
+            // Ignore Windows "System Tray overflow window" or empty Explorer windows
+            if (proc.ProcessName.Equals("explorer", StringComparison.OrdinalIgnoreCase) && 
+                (proc.MainWindowTitle.Equals("Program Manager", StringComparison.OrdinalIgnoreCase) || 
+                proc.MainWindowTitle.Equals("System tray overflow window", StringComparison.OrdinalIgnoreCase) || 
+                string.IsNullOrWhiteSpace(proc.MainWindowTitle)))
             {
-                // Skip if no window title (user not actively using file explorer)
-                if (string.IsNullOrWhiteSpace(windowTitle) || windowTitle == "Program Manager")
-                    return ("", "", "", null);
-            }
+                return ("", "", "", null);
+            } 
             
+            if(string.IsNullOrWhiteSpace(proc.MainWindowTitle))
+            {
+                return ("", "", "", null);
+            }
+
 
 
             // Extract app icon
