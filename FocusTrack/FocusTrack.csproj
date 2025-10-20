@@ -344,6 +344,7 @@
     </Page>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="model\AppIcons.cs" />
     <Compile Include="model\AppUsage.cs" />
     <Compile Include="model\UserSettings.cs" />
     <Compile Include="Pages\AppDetailPage.xaml.cs">

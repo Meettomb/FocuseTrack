@@ -1,4 +1,5 @@
-﻿using FocusTrack.model;
+﻿
+using FocusTrack.model;
 using FocusTrack.Model;
 using System;
 using System.Collections.Generic;
@@ -37,17 +38,29 @@ namespace FocusTrack
 
                     using (var cmd = conn.CreateCommand())
                     {
+
+                        // AppIcons table (create first, since others reference it)
+                        cmd.CommandText = @"
+                        CREATE TABLE IF NOT EXISTS AppIcons (
+                            AppIconId INTEGER PRIMARY KEY AUTOINCREMENT,
+                            AppName TEXT UNIQUE,
+                            AppIcon BLOB
+                        );";
+                        cmd.ExecuteNonQuery();
+
+
                         // AppUsage table
                         cmd.CommandText = @"
                         CREATE TABLE IF NOT EXISTS AppUsage (
                             Id INTEGER PRIMARY KEY AUTOINCREMENT,
                             AppName TEXT,
-                            AppIcon BLOB,
+                            AppIcon INTEGER,
                             WindowTitle TEXT,
                             StartTime TEXT,
                             EndTime TEXT,
                             DurationSeconds INTEGER,
-                            ExePath TEXT
+                            ExePath TEXT,
+                            ForEIGN KEY(AppIcon) REFERENCES AppIcons(AppIconId)
                         );";
                         cmd.ExecuteNonQuery();
 
@@ -78,13 +91,10 @@ namespace FocusTrack
             }
         }
 
-
-
-
         public static async Task SaveSessionAsync(string appName, string windowTitle, DateTime start, DateTime end, string exePath)
         {
             byte[] iconBytes = null;
-
+            int appIconId = -1;
             if (!string.IsNullOrEmpty(exePath) && File.Exists(exePath))
             {
                 try
@@ -111,6 +121,36 @@ namespace FocusTrack
             using (var conn = new SQLiteConnection(ConnString))
             {
                 await conn.OpenAsync();
+
+               
+
+                using (var cmd = conn.CreateCommand())
+                {
+                    cmd.CommandText = @"
+                        INSERT INTO AppIcons(AppName, AppIcon)
+                        VALUES (@AppName, @AppIcon)
+                        ON CONFLICT(AppName) DO UPDATE SET AppIcon = excluded.AppIcon;";
+                    cmd.Parameters.AddWithValue("@AppName", appName);
+                    cmd.Parameters.AddWithValue("@AppIcon", (object)iconBytes ?? DBNull.Value);
+
+                    await cmd.ExecuteNonQueryAsync();
+                }
+
+                // Retrive AppIconId from AppIcons table
+                using (var cmd = conn.CreateCommand())
+                {
+                    cmd.CommandText = @"
+                        SELECT AppIconId FROM AppIcons WHERE AppName = @AppName;";
+                    cmd.Parameters.AddWithValue("@AppName", appName);
+                    var result = await cmd.ExecuteScalarAsync();
+                    if (result != null && int.TryParse(result.ToString(), out int id))
+                    {
+                        appIconId = Convert.ToInt32(result);
+                    }
+                }
+
+
+
                 using (var cmd = conn.CreateCommand())
                 {
                     cmd.CommandText = @"
@@ -122,7 +162,7 @@ namespace FocusTrack
                     cmd.Parameters.AddWithValue("@StartTime", start.ToString("yyyy-MM-dd HH:mm:ss"));
                     cmd.Parameters.AddWithValue("@EndTime", end.ToString("yyyy-MM-dd HH:mm:ss"));
                     cmd.Parameters.AddWithValue("@DurationSeconds", (int)(end - start).TotalSeconds);
-                    cmd.Parameters.AddWithValue("@AppIcon", (object)iconBytes ?? DBNull.Value);
+                    cmd.Parameters.AddWithValue("@AppIcon",appIconId);
                     cmd.Parameters.AddWithValue("@ExePath", string.IsNullOrEmpty(exePath) ? (object)DBNull.Value : exePath);
 
                     await cmd.ExecuteNonQueryAsync();
@@ -202,10 +242,6 @@ namespace FocusTrack
             };
         }
 
-
-
-
-      
 
         public class HourlyUsage
         {
@@ -324,11 +360,12 @@ namespace FocusTrack
                     using (var cmd = conn.CreateCommand())
                     {
                         cmd.CommandText = @"
-                        SELECT AppName, ExePath, AppIcon, WindowTitle, StartTime, EndTime
-                        FROM AppUsage
-                        WHERE (@start IS NULL OR EndTime >= @start) 
-                        AND (@end IS NULL OR StartTime <= @end)
-                        ORDER BY StartTime;
+                            SELECT u.AppName, u.ExePath, i.AppIcon, u.WindowTitle, u.StartTime, u.EndTime
+                            FROM AppUsage u   
+                            LEFT JOIN AppIcons i ON u.AppIcon = i.AppIconId
+                            WHERE (@start IS NULL OR u.EndTime >= @start)
+                            AND (@end IS NULL OR u.StartTime <= @end)
+                            ORDER BY u.StartTime;
                         ";
 
                         cmd.Parameters.AddWithValue("@start", (object)start ?? DBNull.Value);
@@ -338,6 +375,7 @@ namespace FocusTrack
                         {
                             int startTimeIdx = reader.GetOrdinal("StartTime");
                             int endTimeIdx = reader.GetOrdinal("EndTime");
+                           
                             while (await reader.ReadAsync())
                             {
                                 var startTime = reader.GetDateTime(startTimeIdx);
@@ -435,7 +473,7 @@ namespace FocusTrack
                         {
 
                             string baseDir = AppDomain.CurrentDomain.BaseDirectory;
-                            string iconPath = Path.Combine(baseDir,iconInfo.IconPath);
+                            string iconPath = Path.Combine(baseDir, iconInfo.IconPath);
 
 
                             if (File.Exists(iconPath))
@@ -480,7 +518,7 @@ namespace FocusTrack
                 return new List<AppUsage>();
             }
         }
-   
+
         private static readonly Dictionary<string, string> AppFriendlyNames = new Dictionary<string, string>()
         {
              { "chrome", "Google Chrome" },
@@ -531,12 +569,12 @@ namespace FocusTrack
                 if (!end.HasValue) end = date.Date.AddDays(1).AddTicks(-1);
 
                 using (var conn = new SQLiteConnection(ConnString))
-                {        
+                {
                     await conn.OpenAsync();
 
                     using (var cmd = conn.CreateCommand())
                     {
-                       
+
 
                         cmd.CommandText = @"
                     SELECT WindowTitle, StartTime, EndTime
@@ -783,11 +821,12 @@ namespace FocusTrack
                 using (var cmd = conn.CreateCommand())
                 {
                     cmd.CommandText = @"
-                SELECT AppName, StartTime, EndTime, DurationSeconds, AppIcon
-                FROM AppUsage
-                WHERE EndTime >= @start AND StartTime <= @end
+                SELECT u.AppName, u.StartTime, u.EndTime, u.DurationSeconds, i.AppIcon
+                FROM AppUsage u
+                LEFT JOIN AppIcons i ON u.AppIcon = i.AppIconId
+                WHERE u.EndTime >= @start AND u.StartTime <= @end
                       AND DurationSeconds > 0
-                ORDER BY AppName, StartTime
+                ORDER BY u.AppName, u.StartTime
             ";
 
                     cmd.Parameters.AddWithValue("@start", start);
@@ -985,7 +1024,8 @@ namespace FocusTrack
             using (var conn = new SQLiteConnection(ConnString))
             {
                 await conn.OpenAsync();
-                using (var cmd = conn.CreateCommand()) {
+                using (var cmd = conn.CreateCommand())
+                {
                     cmd.CommandText = "UPDATE UserSettings SET NotifyBreakEveryTime = @value WHERE Id = 1;";
                     cmd.Parameters.AddWithValue("@value", value ? 1 : 0);
                     await cmd.ExecuteNonQueryAsync();
