@@ -121,63 +121,53 @@ namespace FocusTrack.Pages
 
             };
 
+            RangeSelecter.SelectedIndex = 0; // or set SelectedItem explicitly
 
+            RangeSelecter.SelectionChanged += RangeSelectot_SelectionChanged;
         }
-     
+
         private async void RangeSelectot_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
+            if (LoaderOverlay == null) return;
+
             if (RangeSelecter.SelectedItem is ComboBoxItem selected)
             {
-                string range = selected.Tag.ToString();
-                List<HourlyUsage> data = null;
+                LoaderOverlay.Visibility = Visibility.Visible;
 
-                DateTime today = DateTime.Today;
-                DateTime now = DateTime.Now;
-                DateTime rangeStart, rangeEnd;
+                await Task.Delay(50); // Give UI time to render
 
-                switch (range)
+                try
                 {
-                    case "today":
-                        rangeStart = today;
-                        rangeEnd = now;
-                        break;
+                    string range = selected.Tag.ToString();
 
-                    case "7d":
-                        rangeStart = today.AddDays(-6); // last 7 days including today
-                        rangeEnd = now;
-                        break;
+                    DateTime today = DateTime.Today;
+                    DateTime now = DateTime.Now;
+                    DateTime rangeStart, rangeEnd;
 
-                    case "1m":
-                        rangeStart = today.AddMonths(-1).AddDays(1); // last 1 month including today
-                        rangeEnd = now;
-                        break;
+                    switch (range)
+                    {
+                        case "today": rangeStart = today; rangeEnd = now; break;
+                        case "7d": rangeStart = today.AddDays(-6); rangeEnd = now; break;
+                        case "1m": rangeStart = today.AddMonths(-1).AddDays(1); rangeEnd = now; break;
+                        case "3m": rangeStart = today.AddMonths(-3).AddDays(1); rangeEnd = now; break;
+                        case "overall": rangeStart = DateTime.MinValue; rangeEnd = now; break;
+                        default: rangeStart = today; rangeEnd = now; break;
+                    }
 
-                    case "3m":
-                        rangeStart = today.AddMonths(-3).AddDays(1); // last 3 months including today
-                        rangeEnd = now;
-                        break;
+                    // Run DB operations on a background thread
+                    var data = await Task.Run(() => Database.GetHourlyUsageAsync(rangeStart, rangeEnd).Result);
+                    await Task.Run(() => LoadAllAppUsageAsync(rangeStart, rangeEnd).Wait());
 
-                    case "overall":
-                        rangeStart = DateTime.MinValue;
-                        rangeEnd = now;
-                        break;
-
-                    default:
-                        rangeStart = today;
-                        rangeEnd = now;
-                        break;
+                    if (data != null)
+                        LoadGraphData(data);
                 }
-
-                // Fetch data
-                data = await Database.GetHourlyUsageAsync(rangeStart, rangeEnd);
-                await LoadAllAppUsageAsync(rangeStart, rangeEnd);
-
-                if (data != null)
+                finally
                 {
-                    LoadGraphData(data);
+                    LoaderOverlay.Visibility = Visibility.Collapsed;
                 }
             }
         }
+
 
 
         public void LoadGraphData(List<HourlyUsage> data)
