@@ -348,6 +348,7 @@ namespace FocusTrack.Pages
             await LoadDefaultGraph();
 
             SelectedDate = DateTime.Today;
+            RangeSelecter.SelectedIndex = 0;
         }
 
     }
