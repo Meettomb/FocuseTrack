@@ -6,15 +6,25 @@
         xmlns:lvc="clr-namespace:LiveChartsCore.SkiaSharpView.WPF;assembly=LiveChartsCore.SkiaSharpView.WPF"
         xmlns:sys="clr-namespace:System;assembly=mscorlib"
         xmlns:controls="clr-namespace:FocusTrack.Controls"
+        xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework"
         mc:Ignorable="d"
         WindowStyle="None"
-        ResizeMode="NoResize"
+        ResizeMode="CanResize"
         AllowsTransparency="False"
         Title="Focus Track"
         Background="#10131C"
         Height="450"
         Width="800"
         Icon="/Images/AppLogo/FocusTrack.ico">
+
+    <shell:WindowChrome.WindowChrome>
+        <shell:WindowChrome
+        CaptionHeight="0"
+        ResizeBorderThickness="5"
+        GlassFrameThickness="0"
+        UseAeroCaptionButtons="False"/>
+    </shell:WindowChrome.WindowChrome>
+
 
     <Grid>
         <Grid.RowDefinitions>
