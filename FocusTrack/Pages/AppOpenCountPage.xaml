@@ -158,6 +158,50 @@
             </Grid>
         </ScrollViewer>
 
+
+
+        <!-- Loader overlay -->
+        <Border x:Name="LoaderOverlay"
+            Background="#80000000"
+            Visibility="Collapsed"
+            HorizontalAlignment="Stretch"
+            VerticalAlignment="Stretch">
+            <Grid HorizontalAlignment="Center" VerticalAlignment="Center">
+
+                <!-- Spinner -->
+                <Canvas Width="80" Height="80">
+                    <Ellipse Width="60" Height="60" Stroke="DodgerBlue" StrokeThickness="6" StrokeDashArray="2 4">
+                        <Ellipse.RenderTransform>
+                            <RotateTransform x:Name="SpinnerRotate" CenterX="30" CenterY="30"/>
+                        </Ellipse.RenderTransform>
+                        <Ellipse.Triggers>
+                            <EventTrigger RoutedEvent="Canvas.Loaded">
+                                <BeginStoryboard>
+                                    <Storyboard RepeatBehavior="Forever">
+                                        <DoubleAnimation Storyboard.TargetName="SpinnerRotate"
+                                                 Storyboard.TargetProperty="Angle"
+                                                 From="0" To="360" Duration="0:0:1"/>
+                                    </Storyboard>
+                                </BeginStoryboard>
+                            </EventTrigger>
+                        </Ellipse.Triggers>
+                    </Ellipse>
+                </Canvas>
+
+                <!--
+                <TextBlock Text="Loading..."
+                   Foreground="White"
+                   FontSize="16"
+                   FontWeight="Bold"
+                   HorizontalAlignment="Center"
+                   VerticalAlignment="Bottom"
+                   Margin="0,90,0,0"/>
+                -->
+            </Grid>
+        </Border>
+
+
+
         <Popup x:Name="CalendarPopup"
            Placement="Center"
            StaysOpen="False"

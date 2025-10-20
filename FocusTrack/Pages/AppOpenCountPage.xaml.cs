@@ -117,117 +117,45 @@ namespace FocusTrack.Pages
 
         private (string AppName, string Title, string ExePath, byte[] AppIcon) lastActive = (null, null, null, null);
 
-        //private void Timer_Elapsed(object sender, ElapsedEventArgs e)
-        //{
-        //    var active = ActiveWindowTracker.GetActiveWindowInfo();
-
-        //    // Check if tuple is null (tuple itself can't be null, but fields can)
-        //    if (string.IsNullOrWhiteSpace(active.AppName))
-        //        return;
-
-        //    // Check if app or window changed
-        //    if (active.AppName != lastActive.AppName || active.Title != lastActive.Title)
-        //    {
-        //        // Save previous session if any
-        //        if (!string.IsNullOrEmpty(lastActive.AppName))
-        //        {
-        //            _ = Task.Run(async () =>
-        //            {
-        //                try
-        //                {
-        //                    await Database.SaveSessionAsync(
-        //                        lastActive.AppName,
-        //                        lastActive.Title,
-        //                        lastStartTime,
-        //                        DateTime.Now,
-        //                        lastActive.ExePath
-        //                    );
-        //                }
-        //                catch (Exception ex)
-        //                {
-        //                    Debug.WriteLine(ex.Message);
-        //                }
-        //            });
-        //        }
-
-        //        // Start new session
-        //        lastActive = active;
-        //        lastStartTime = DateTime.Now;
-
-        //        // Refresh UI
-        //        _ = Task.Run(async () =>
-        //        {
-        //            try
-        //            {
-        //                await RefreshUIAsync();
-        //            }
-        //            catch (Exception ex)
-        //            {
-        //                Debug.WriteLine(ex.Message);
-        //            }
-        //        });
-        //    }
-        //}
-
-
-
-        private async Task RefreshUIAsync()
-        {
-            var start = SelectedDate.Date;
-            DateTime end = SelectedDate.Date.AddDays(1).AddSeconds(-1);
-            var allData = await Database.GetAppOpenCountAsync(start, end);
-
-            Dispatcher.Invoke(() =>
-            {
-                RangeSelecter.SelectedIndex = 0;
-                AppUsages.Clear();
-                foreach (var item in allData)
-                    AppUsages.Add(item);
-            });
-        }
-
 
         private async void RangeSelectot_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
+            if (LoaderOverlay == null) return;
+
             if (RangeSelecter.SelectedItem is ComboBoxItem selected)
             {
-                string range = selected.Tag.ToString();
+                LoaderOverlay.Visibility = Visibility.Visible;
+                await Task.Delay(50); // Allow UI to render loader
 
-                DateTime today = DateTime.Today;
-                DateTime now = DateTime.Now;
-                DateTime rangeStart, rangeEnd;
-                switch (range) {
-                    case "today":
-                        rangeStart = today;
-                        rangeEnd = now;
-                        break;
-                    case "7d":
-                        rangeStart = today.AddDays(-6); // last 7 days including today
-                        rangeEnd = now;
-                        break;
+                try
+                {
+                    string range = selected.Tag.ToString();
+                    DateTime today = DateTime.Today;
+                    DateTime now = DateTime.Now;
+                    DateTime rangeStart, rangeEnd;
 
-                    case "1m":
-                        rangeStart = today.AddMonths(-1).AddDays(1); // last 1 month including today
-                        rangeEnd = now;
-                        break;
+                    switch (range)
+                    {
+                        case "today":
+                            rangeStart = today; rangeEnd = now; break;
+                        case "7d":
+                            rangeStart = today.AddDays(-6); rangeEnd = now; break;
+                        case "1m":
+                            rangeStart = today.AddMonths(-1).AddDays(1); rangeEnd = now; break;
+                        case "3m":
+                            rangeStart = today.AddMonths(-3).AddDays(1); rangeEnd = now; break;
+                        case "overall":
+                            rangeStart = DateTime.MinValue; rangeEnd = now; break;
+                        default:
+                            rangeStart = today; rangeEnd = now; break;
+                    }
 
-                    case "3m":
-                        rangeStart = today.AddMonths(-3).AddDays(1); // last 3 months including today
-                        rangeEnd = now;
-                        break;
-
-                    case "overall":
-                        rangeStart = DateTime.MinValue;
-                        rangeEnd = now;
-                        break;
-
-                    default:
-                        rangeStart = today;
-                        rangeEnd = now;
-                        break;
+                    await LoadAppCount(rangeStart, rangeEnd);
                 }
-
-                await LoadAppCount(rangeStart, rangeEnd);
+                finally
+                {
+                    LoaderOverlay.Visibility = Visibility.Collapsed;
+                }
             }
         }
 
