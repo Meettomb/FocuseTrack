@@ -204,6 +204,11 @@ namespace FocusTrack
                 return;
             }
 
+            if (string.IsNullOrWhiteSpace(windowTitle))
+            {
+                return; // Skip tracking if title is missing
+            }
+
             if (appName != lastApp || windowTitle != lastTitle)
             {
                 if (!string.IsNullOrEmpty(lastApp))
@@ -216,9 +221,9 @@ namespace FocusTrack
                 lastStart = DateTime.Now;
                 lastExePath = exePath;
             }
-
+           
         }
-
+        
         private async Task RefreshUIAsync()
         {
             await Dispatcher.InvokeAsync(async () =>

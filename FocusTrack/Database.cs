@@ -319,6 +319,7 @@ namespace FocusTrack
 
         private static readonly Dictionary<string, (string FriendlyName, string IconPath)> AppIcons = new Dictionary<string, (string FriendlyName, string IconPath)>()
         {
+            { "ApplicationFrameHost", ("ApplicationFrameHost", "Assets/Icons/ApplicationFramHost.png") },
             { "WhatsApp", ("WhatsApp", "Assets/Icons/WhatsApp.png") },
             { "Spotify", ("Spotify", "Assets/Icons/spotify.png") },
             { "Microsoft Teams", ("Microsoft Teams", "Assets/Icons/teams.png") },
