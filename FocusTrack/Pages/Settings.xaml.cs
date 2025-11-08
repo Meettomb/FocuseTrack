@@ -97,8 +97,8 @@ namespace FocusTrack.Pages
                 if (TimePopup.IsOpen)
                     TimePopup.IsOpen = false;
 
-                //if (ActivityTrackingScopePopup.IsOpen)
-                //    ActivityTrackingScopePopup.IsOpen = false;
+                if (ActivityTrackingScopePopup.IsOpen)
+                    ActivityTrackingScopePopup.IsOpen = false;
             };
             // Detect click outside popup
             this.PreviewMouseDown += (s, e) =>
@@ -109,11 +109,11 @@ namespace FocusTrack.Pages
                     if (!TimePopup.IsMouseOver && !TimePopup.IsMouseOver)
                         TimePopup.IsOpen = false;
                 }
-                //if (ActivityTrackingScopePopup.IsOpen)
-                //{
-                //    if (!ActivityTrackingScopePopup.IsMouseOver && !ActivityTrackingScopePopup.IsMouseOver)
-                //        ActivityTrackingScopePopup.IsOpen = false;
-                //}
+                if (ActivityTrackingScopePopup.IsOpen)
+                {
+                    if (!ActivityTrackingScopePopup.IsMouseOver && !ActivityTrackingScopePopup.IsMouseOver)
+                        ActivityTrackingScopePopup.IsOpen = false;
+                }
             };
 
 
@@ -194,7 +194,12 @@ namespace FocusTrack.Pages
 
                 // Set value from UserSettings
                 NotifyEveryTime.IsChecked = UserSettings.NotifyBreakEveryTime;
-             
+
+                // Set Activity Tracking Scope
+                ActivityTrackingScope.Text = UserSettings.ActivityTrackingScope
+                    ? "Entire Screen"
+                    : "Active Apps Only";
+
             }
         }
 
@@ -353,15 +358,75 @@ namespace FocusTrack.Pages
 
 
         // For Active App Scop Setting
-        //private void ActivityTrackingScope_Click(object sender, MouseButtonEventArgs e)
-        //{
-        //    ActivityTrackingScopePopup.IsOpen = !ActivityTrackingScopePopup.IsOpen;
-        //}
+        private void ActivityTrackingScope_Click(object sender, MouseButtonEventArgs e)
+        {
+            ActivityTrackingScopePopup.IsOpen = !ActivityTrackingScopePopup.IsOpen;
+        }
+        private async void ActivityTrackingScopePopup_Closed(object sender, EventArgs e)
+        {
+            var selectedScopeObj = ActivityTrackingScopeListBox.SelectedItem;
+            if (selectedScopeObj == null)
+            {
+                System.Diagnostics.Debug.WriteLine("No activity tracking scope selected.");
+                return;
+            }
 
-        //private async void ActivityTrackingScopePopup_Closed(object sender, EventArgs e)
-        //{
-        //    var selectedScope = ActivityTrackingScopeListBox.SelectedItem;
-        //}
+            // Normalize to a string whether SelectedItem is a ListBoxItem or a plain string
+            string selectedText = null;
+            if (selectedScopeObj is ListBoxItem lbi)
+                selectedText = lbi.Content?.ToString();
+            else
+                selectedText = selectedScopeObj.ToString();
+
+            if (string.IsNullOrWhiteSpace(selectedText))
+            {
+                System.Diagnostics.Debug.WriteLine("Selected scope text is empty.");
+                return;
+            }
+
+            await Database.EnsureActivityTrackingScopeColumns();
+
+            int scopeInt = 0;
+            if (string.Equals(selectedText, "Active Apps Only", StringComparison.OrdinalIgnoreCase))
+            {
+                scopeInt = 0;
+            }
+            else if (string.Equals(selectedText, "Entire Screen", StringComparison.OrdinalIgnoreCase))
+            {
+                scopeInt = 1;
+            }
+            else
+            {
+                System.Diagnostics.Debug.WriteLine("Unknown selected scope: " + selectedText);
+            }
+
+            System.Diagnostics.Debug.WriteLine("Selected Scope: " + scopeInt);
+
+            // Persist the choice to the database
+            int newScopeValue = await Database.UpdateActivityTrackingScope(scopeInt);
+
+            // update UserSettings in memory
+            UserSettings.ActivityTrackingScope = (newScopeValue == 1);
+
+            // instantly update the label
+            ActivityTrackingScope.Text = UserSettings.ActivityTrackingScope
+                ? "Entire Screen"
+                : "Active Apps Only";
+
+        }
+        private void ActivityTrackingScopeListBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (ActivityTrackingScopeListBox.SelectedItem == null)
+                return;
+
+            // Close the popup
+            ActivityTrackingScopePopup.IsOpen = false;
+        }
+
+
+
+
+
 
         private void BackIcon_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {

@@ -13,5 +13,6 @@ namespace FocusTrack.model
         public bool TrackVPN { get; set; }
         public string BreakTime { get; set; }
         public bool NotifyBreakEveryTime { get; set; }
+        public bool ActivityTrackingScope { get; set; }
     }
 }

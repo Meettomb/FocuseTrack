@@ -71,14 +71,18 @@ namespace FocusTrack
                             TrackPrivateMode INTEGER DEFAULT 1,
                             TrackVPN INTEGER DEFAULT 1,
                             BreakTime TEXT DEFAULT '00:00',
-                            NotifyBreakEveryTime INTEGER DEFAULT 0
+                            NotifyBreakEveryTime INTEGER DEFAULT 0,
+                            ActivityTrackingScope INTEGER DEFAULT 0
                         );";
+                        // 0 = Active Apps Only AND 1 = Entire Screen, In ActivityTrackingScope
                         cmd.ExecuteNonQuery();
+
+
 
                         // Ensure at least one row exists
                         cmd.CommandText = @"
-                        INSERT INTO UserSettings (TrackPrivateMode, TrackVPN, BreakTime, NotifyBreakEveryTime)
-                        SELECT 1, 1, '00:00', 0
+                        INSERT INTO UserSettings (TrackPrivateMode, TrackVPN, BreakTime, NotifyBreakEveryTime, ActivityTrackingScope)
+                        SELECT 1, 1, '00:00', 0, 0
                         WHERE NOT EXISTS (SELECT 1 FROM UserSettings);
                     ";
                         cmd.ExecuteNonQuery();
@@ -122,7 +126,7 @@ namespace FocusTrack
             {
                 await conn.OpenAsync();
 
-               
+
 
                 using (var cmd = conn.CreateCommand())
                 {
@@ -162,7 +166,7 @@ namespace FocusTrack
                     cmd.Parameters.AddWithValue("@StartTime", start.ToString("yyyy-MM-dd HH:mm:ss"));
                     cmd.Parameters.AddWithValue("@EndTime", end.ToString("yyyy-MM-dd HH:mm:ss"));
                     cmd.Parameters.AddWithValue("@DurationSeconds", (int)(end - start).TotalSeconds);
-                    cmd.Parameters.AddWithValue("@AppIcon",appIconId);
+                    cmd.Parameters.AddWithValue("@AppIcon", appIconId);
                     cmd.Parameters.AddWithValue("@ExePath", string.IsNullOrEmpty(exePath) ? (object)DBNull.Value : exePath);
 
                     await cmd.ExecuteNonQueryAsync();
@@ -319,7 +323,7 @@ namespace FocusTrack
 
         private static readonly Dictionary<string, (string FriendlyName, string IconPath)> AppIcons = new Dictionary<string, (string FriendlyName, string IconPath)>()
         {
-            { "ApplicationFrameHost", ("ApplicationFrameHost", "Assets/Icons/ApplicationFramHost.png") },
+            { "ApplicationFrameHost", ("ApplicationFrameHost", "Assets/Icons/ApplicationFramHost2.png") },
             { "WhatsApp", ("WhatsApp", "Assets/Icons/WhatsApp.png") },
             { "Spotify", ("Spotify", "Assets/Icons/spotify.png") },
             { "Microsoft Teams", ("Microsoft Teams", "Assets/Icons/teams.png") },
@@ -376,7 +380,7 @@ namespace FocusTrack
                         {
                             int startTimeIdx = reader.GetOrdinal("StartTime");
                             int endTimeIdx = reader.GetOrdinal("EndTime");
-                           
+
                             while (await reader.ReadAsync())
                             {
                                 var startTime = reader.GetDateTime(startTimeIdx);
@@ -558,7 +562,6 @@ namespace FocusTrack
                         { "studio64", "Android Studio" }
         };
 
-
         public static async Task<List<AppUsage>> GetAppDetailResultsByAppName(string appName, DateTime date, DateTime? start = null, DateTime? end = null)
         {
             var stopwatch = System.Diagnostics.Stopwatch.StartNew();
@@ -722,6 +725,7 @@ namespace FocusTrack
                 // Check if BreakTime column exists
                 bool breakTimeExists = false;
                 bool NotifyBreakEveryTimeExists = false;
+                bool ActivityTrackingScopeExists = false;
                 using (var checkCmd = conn.CreateCommand())
                 {
                     checkCmd.CommandText = "PRAGMA table_info(UserSettings);";
@@ -738,14 +742,18 @@ namespace FocusTrack
                             {
                                 NotifyBreakEveryTimeExists = true;
                             }
+                            if(columnName.Equals("ActivityTrackingScope", StringComparison.OrdinalIgnoreCase)){
+                                ActivityTrackingScopeExists = true;
+                            }
                         }
                     }
                 }
 
                 using (var cmd = conn.CreateCommand())
                 {
-                    // Only select BreakTime if it exists
-                    if (breakTimeExists && NotifyBreakEveryTimeExists)
+                    if (breakTimeExists && NotifyBreakEveryTimeExists && ActivityTrackingScopeExists)
+                        cmd.CommandText = "SELECT Id, TrackPrivateMode, TrackVPN, BreakTime, NotifyBreakEveryTime, ActivityTrackingScope FROM UserSettings LIMIT 1";
+                    else if (breakTimeExists && NotifyBreakEveryTimeExists)
                         cmd.CommandText = "SELECT Id, TrackPrivateMode, TrackVPN, BreakTime, NotifyBreakEveryTime FROM UserSettings LIMIT 1";
                     else if (breakTimeExists)
                         cmd.CommandText = "SELECT Id, TrackPrivateMode, TrackVPN, BreakTime FROM UserSettings LIMIT 1";
@@ -764,7 +772,8 @@ namespace FocusTrack
                                 TrackPrivateMode = Convert.ToBoolean(reader["TrackPrivateMode"]),
                                 TrackVPN = Convert.ToBoolean(reader["TrackVPN"]),
                                 BreakTime = breakTimeExists ? Convert.ToString(reader["BreakTime"]) : "00:00",
-                                NotifyBreakEveryTime = NotifyBreakEveryTimeExists ? Convert.ToBoolean(reader["NotifyBreakEveryTime"]) : false
+                                NotifyBreakEveryTime = NotifyBreakEveryTimeExists ? Convert.ToBoolean(reader["NotifyBreakEveryTime"]) : false,
+                                ActivityTrackingScope = ActivityTrackingScopeExists ? Convert.ToBoolean(reader["ActivityTrackingScope"]) : false
                             });
                         }
                     }
@@ -800,8 +809,6 @@ namespace FocusTrack
                 }
             }
         }
-
-
 
         public class AppOpenCount
         {
@@ -942,6 +949,28 @@ namespace FocusTrack
                 System.Diagnostics.Debug.WriteLine("Failed to ensure BreakTime column: " + ex.Message);
             }
         }
+        public static async Task SaveBreakTimeToDatabase(string time)
+        {
+            try
+            {
+                using (var conn = new SQLiteConnection(Database.ConnString))
+                {
+                    await conn.OpenAsync();
+
+                    using (var cmd = conn.CreateCommand())
+                    {
+                        cmd.CommandText = "UPDATE UserSettings SET BreakTime = @time WHERE Id = 1;";
+                        cmd.Parameters.AddWithValue("@time", time);
+                        await cmd.ExecuteNonQueryAsync();
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine("Failed to save BreakTime: " + ex.Message);
+            }
+        }
+
         public static async Task EnsureNotifyBreakEveryTimeColumn()
         {
             try
@@ -995,31 +1024,6 @@ namespace FocusTrack
                 System.Diagnostics.Debug.WriteLine("Failed to ensure NotifyBreakEveryTime column: " + ex.Message);
             }
         }
-
-
-
-        public static async Task SaveBreakTimeToDatabase(string time)
-        {
-            try
-            {
-                using (var conn = new SQLiteConnection(Database.ConnString))
-                {
-                    await conn.OpenAsync();
-
-                    using (var cmd = conn.CreateCommand())
-                    {
-                        cmd.CommandText = "UPDATE UserSettings SET BreakTime = @time WHERE Id = 1;";
-                        cmd.Parameters.AddWithValue("@time", time);
-                        await cmd.ExecuteNonQueryAsync();
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine("Failed to save BreakTime: " + ex.Message);
-            }
-        }
-
         public static async Task UpdateNotifyEveryTime(bool value)
         {
             using (var conn = new SQLiteConnection(ConnString))
@@ -1032,17 +1036,81 @@ namespace FocusTrack
                     await cmd.ExecuteNonQueryAsync();
                 }
             }
+
         }
 
 
+        public static async Task EnsureActivityTrackingScopeColumns()
+        {
+            try
+            {
+                using (var conn = new SQLiteConnection(Database.ConnString))
+                {
+                    await conn.OpenAsync();
+                    bool columnExists = false;
+                    using (var cmd = conn.CreateCommand())
+                    {
+                        cmd.CommandText = "PRAGMA table_info(UserSettings);";
+                        using (var reader = await cmd.ExecuteReaderAsync())
+                        {
+                            while (await reader.ReadAsync())
+                            {
+                                string columnName = reader["name"].ToString();
+                                if (columnName.Equals("ActivityTrackingScope", StringComparison.OrdinalIgnoreCase))
+                                {
+                                    columnExists = true;
+                                    break;
+                                }
+                            }
+                        }
+                    }
+
+                    if (!columnExists)
+                    {
+                        using (var cmd = conn.CreateCommand())
+                        {
+                            cmd.CommandText = @"ALTER TABLE UserSettings ADD COLUMN ActivityTrackingScope INTEGER DEFAULT 0;";
+                            await cmd.ExecuteNonQueryAsync();
+                        }
+                    }
+                    else
+                    {
+                        System.Diagnostics.Debug.WriteLine("ActivityTrackingScope column already exists.");
+                    }
+
+                    // Ensure existing rows are initialized to 0
+                    using (var cmd = conn.CreateCommand())
+                    {
+                        cmd.CommandText = "UPDATE UserSettings SET NotifyBreakEveryTime = 0 WHERE NotifyBreakEveryTime IS NULL;";
+                        await cmd.ExecuteNonQueryAsync();
+                    }
+
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine("Failed to ensure ActivityTrackingScope column: " + ex.Message);
+            }
+        }
+        public static async Task<int> UpdateActivityTrackingScope(int value)
+        {
+            using (var conn = new SQLiteConnection(ConnString))
+            {
+                await conn.OpenAsync();
+                using (var cmd = conn.CreateCommand())
+                {
+                    cmd.CommandText = "UPDATE UserSettings SET ActivityTrackingScope = @value WHERE Id = 1;";
+                    cmd.Parameters.AddWithValue("@value", value);
+                    await cmd.ExecuteNonQueryAsync();
+                }
+            }
+
+            return value;
+
+
+        }
+
     }
-
-
-
-
-
-
-
 
 
 }

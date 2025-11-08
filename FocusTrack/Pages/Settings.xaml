@@ -369,7 +369,7 @@
             </Border>
 
             <!-- Active Traking Scope -->
-          <!--
+
             <Border
                Grid.Row="3"
                CornerRadius="10"
@@ -403,7 +403,7 @@
                          MouseLeftButtonDown="ActivityTrackingScope_Click"
                             >
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
-                            <TextBlock x:Name="ActivityTrackingScope" Text="Active Only" Foreground="White" FontSize="18" Margin="10,0"/>
+                            <TextBlock x:Name="ActivityTrackingScope" Text="Active Apps Only" Foreground="White" FontSize="18" Margin="10,0"/>
                         </StackPanel>
                     </Border>
 
@@ -418,14 +418,16 @@
 
                         <Grid>
                             <ListBox x:Name="ActivityTrackingScopeListBox"
-                                    Width="Auto"
+                                    Width="175"
                                     Background="#333"
                                     Foreground="White"
                                     VerticalContentAlignment="Center"
-                                     FontSize="16">
-                                <ListBoxItem Content="Active Apps Only" />
+                                     FontSize="17"
+                                     SelectionChanged="ActivityTrackingScopeListBox_SelectionChanged">
+                                <ListBoxItem Content="Active Apps Only" Height="40"/>
                                 <ListBoxItem Content="Entire Screen"
-                                             Margin="0 10 0 0"/>
+                                             Margin="0 5 0 0"
+                                             Height="40"/>
                             </ListBox>
                         </Grid>
                     </Popup>
@@ -433,7 +435,7 @@
                 </Grid>
             </Border>
 
-        -->
+        
 
 
 

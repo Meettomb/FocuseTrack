@@ -273,6 +273,7 @@ namespace FocusTrack.Pages
             });
         }
 
+
         public void UpdateTotalUsage()
         {
             var totalSeconds = AppUsages.Sum(x => x.Duration.TotalSeconds);
