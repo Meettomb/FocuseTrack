@@ -30,9 +30,31 @@ namespace FocusTrack
 
         [DllImport("kernel32.dll")]
         [return: MarshalAs(UnmanagedType.Bool)]
+
         private static extern bool CloseHandle(IntPtr hObject);
 
         private const uint PROCESS_QUERY_LIMITED_INFORMATION = 0x1000;
+
+
+        #region Virtual Desktop Manager API
+        [ComImport]
+        [Guid("A5CD92FF-29BE-454C-8D04-D82879FB3F1B")]
+        [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+        interface IVirtualDesktopManager
+        {
+            bool IsWindowOnCurrentVirtualDesktop(IntPtr topLevelWindow);
+            Guid GetWindowDesktopId(IntPtr topLevelWindow);
+            void MoveWindowToDesktop(IntPtr topLevelWindow, ref Guid desktopId);
+        }
+
+        [ComImport]
+        [Guid("AA509086-5CA9-4C25-8F95-589D3C07B48A")]
+        class VirtualDesktopManagerClass
+        {
+        }
+        #endregion
+
+
 
         public static bool TrackPrivateModeEnabled = true;
         public static bool TrackVPNEnabled = true;
@@ -63,8 +85,6 @@ namespace FocusTrack
             "lockapp.exe",
         };
 
-
-
         // Map for known UWP apps running under ApplicationFrameHost
         private static readonly Dictionary<string, (string FriendlyName, string IconPath)> UwpApps =
             new Dictionary<string, (string, string)>(StringComparer.OrdinalIgnoreCase)
@@ -91,9 +111,6 @@ namespace FocusTrack
                 { "Alarm", ("Alarms & Clock", "Assets/Icons/clock.png") }
             };
 
-
-
-
         public static (string AppName, string Title, string ExePath, byte[] AppIcon) GetActiveWindowInfo()
         {
             // Get installed VPNs
@@ -111,6 +128,12 @@ namespace FocusTrack
 
             IntPtr hwnd = GetForegroundWindow();
             if (hwnd == IntPtr.Zero) return ("", "", "", null);
+
+            // Skip windows not on the current virtual desktop
+            if (!IsWindowOnCurrentDesktop(hwnd))
+            {
+                return ("", "", "", null);
+            }
 
             GetWindowThreadProcessId(hwnd, out uint pid);
 
@@ -146,6 +169,9 @@ namespace FocusTrack
                     }
                 }
             }
+
+            //bool isOnCurrent = IsWindowOnCurrentDesktop(hwnd);
+            //Debug.WriteLine($"[Desktop Check] {proc.ProcessName} on current desktop? {isOnCurrent}");
 
 
 
@@ -220,6 +246,24 @@ namespace FocusTrack
             return (appName, windowTitle, exePath, appIcon);
         }
 
+        private static bool IsWindowOnCurrentDesktop(IntPtr hwnd)
+        {
+            try
+            {
+                if (hwnd == IntPtr.Zero)
+                    return false;
+
+                var vdm = (IVirtualDesktopManager)new VirtualDesktopManagerClass();
+                return vdm.IsWindowOnCurrentVirtualDesktop(hwnd);
+            }
+            catch
+            {
+                // If API not available or COM fails, assume true (so it doesn't break)
+                return true;
+            }
+        }
+
+
         private static string GetProcessPath(Process proc)
         {
             try
@@ -242,7 +286,6 @@ namespace FocusTrack
             catch { }
             return "";
         }
-
         private static string TryGetRealUwpExe(string windowTitle)
         {
             try

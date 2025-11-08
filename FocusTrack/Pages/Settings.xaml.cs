@@ -96,6 +96,9 @@ namespace FocusTrack.Pages
             {
                 if (TimePopup.IsOpen)
                     TimePopup.IsOpen = false;
+
+                //if (ActivityTrackingScopePopup.IsOpen)
+                //    ActivityTrackingScopePopup.IsOpen = false;
             };
             // Detect click outside popup
             this.PreviewMouseDown += (s, e) =>
@@ -106,7 +109,13 @@ namespace FocusTrack.Pages
                     if (!TimePopup.IsMouseOver && !TimePopup.IsMouseOver)
                         TimePopup.IsOpen = false;
                 }
+                //if (ActivityTrackingScopePopup.IsOpen)
+                //{
+                //    if (!ActivityTrackingScopePopup.IsMouseOver && !ActivityTrackingScopePopup.IsMouseOver)
+                //        ActivityTrackingScopePopup.IsOpen = false;
+                //}
             };
+
 
             // Populate hours dynamically
             for (int i = 0; i <= 6; i++)
@@ -266,7 +275,7 @@ namespace FocusTrack.Pages
 
 
 
-
+        // Focause Mode Grid Click
         public void FocauseModeGrid_Click(object sender, RoutedEventArgs e)
         {
             if (DetailsGrid.Visibility == Visibility.Collapsed)
@@ -342,7 +351,18 @@ namespace FocusTrack.Pages
           
         }
 
-     
+
+        // For Active App Scop Setting
+        //private void ActivityTrackingScope_Click(object sender, MouseButtonEventArgs e)
+        //{
+        //    ActivityTrackingScopePopup.IsOpen = !ActivityTrackingScopePopup.IsOpen;
+        //}
+
+        //private async void ActivityTrackingScopePopup_Closed(object sender, EventArgs e)
+        //{
+        //    var selectedScope = ActivityTrackingScopeListBox.SelectedItem;
+        //}
+
         private void BackIcon_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
             if (!NavigationService.CanGoBack)

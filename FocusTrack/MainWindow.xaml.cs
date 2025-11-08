@@ -204,9 +204,10 @@ namespace FocusTrack
                 return;
             }
 
+            // Skip tracking if title is missing
             if (string.IsNullOrWhiteSpace(windowTitle))
             {
-                return; // Skip tracking if title is missing
+                return; 
             }
 
             if (appName != lastApp || windowTitle != lastTitle)
