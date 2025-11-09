@@ -1,4 +1,6 @@
 ﻿using FocusTrack.Helpers;
+using FocusTrack.model;
+using FocusTrack.Pages;
 using Microsoft.Win32;
 using System;
 using System.Collections.Generic;
@@ -33,6 +35,13 @@ namespace FocusTrack
 
         private static extern bool CloseHandle(IntPtr hObject);
 
+
+        // Skip minimized windows
+        [DllImport("user32.dll")]
+        private static extern bool IsIconic(IntPtr hWnd);
+
+       
+        
         private const uint PROCESS_QUERY_LIMITED_INFORMATION = 0x1000;
 
 
@@ -58,6 +67,7 @@ namespace FocusTrack
 
         public static bool TrackPrivateModeEnabled = true;
         public static bool TrackVPNEnabled = true;
+
 
 
         // Ignore system/host processes
@@ -135,6 +145,14 @@ namespace FocusTrack
                 return ("", "", "", null);
             }
 
+            if (IsIconic(hwnd))
+            {
+                Debug.WriteLine("[GetActiveWindowInfo] Window is minimized — skipping tracking.");
+                return ("", "", "", null);
+            }
+            else {
+                //Debug.WriteLine("[GetActiveWindowInfo] Window is active and visible.");
+            }
             GetWindowThreadProcessId(hwnd, out uint pid);
 
             Process proc = null;
@@ -146,6 +164,22 @@ namespace FocusTrack
             {
                 //Debug.WriteLine($"[GetActiveWindowInfo] Failed to get process for PID {pid}");
                 return ("Unknown", "", "", null);
+            }
+
+
+            //  Skip minimized windows
+            if (IsIconic(hwnd))
+            {
+                //Debug.WriteLine("[GetActiveWindowInfo] Window is minimized — skipping tracking.");
+                return ("", "", "", null);
+            }
+                // Skip desktop when app minimized
+            if (proc.ProcessName.Equals("explorer", StringComparison.OrdinalIgnoreCase) &&
+                (string.IsNullOrEmpty(proc.MainWindowTitle) ||
+                 proc.MainWindowTitle.Equals("Program Manager", StringComparison.OrdinalIgnoreCase)))
+            {
+                //Debug.WriteLine("[GetActiveWindowInfo] Desktop or minimized app detected — skipping tracking.");
+                return ("", "", "", null);
             }
 
             // Ignore unwanted system processes
@@ -181,19 +215,17 @@ namespace FocusTrack
             string windowTitle = sb.ToString();
             //Debug.WriteLine($"[GetActiveWindowInfo] Window Title: {windowTitle}");
 
-
-
-
             // Ignore Windows "System Tray overflow window" or empty Explorer windows
-            if (proc.ProcessName.Equals("explorer", StringComparison.OrdinalIgnoreCase) && 
-                (proc.MainWindowTitle.Equals("Program Manager", StringComparison.OrdinalIgnoreCase) || 
-                proc.MainWindowTitle.Equals("System tray overflow window", StringComparison.OrdinalIgnoreCase) || 
+            if (proc.ProcessName.Equals("explorer", StringComparison.OrdinalIgnoreCase) &&
+                (proc.MainWindowTitle.Equals("Program Manager", StringComparison.OrdinalIgnoreCase) ||
+                proc.MainWindowTitle.Equals("System tray overflow window", StringComparison.OrdinalIgnoreCase) ||
                 string.IsNullOrWhiteSpace(proc.MainWindowTitle)))
             {
-                return ("", "", "", null);
-            } 
-            
-            if(string.IsNullOrWhiteSpace(proc.MainWindowTitle))
+                //return ("", "", "", null);
+                return ("Desktop", "No active window", "C:\\Windows\\explorer.exe", null);
+            }
+
+            if (string.IsNullOrWhiteSpace(proc.MainWindowTitle))
             {
                 return ("", "", "", null);
             }

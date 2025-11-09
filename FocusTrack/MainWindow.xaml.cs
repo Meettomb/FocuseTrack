@@ -170,11 +170,56 @@ namespace FocusTrack
             {
 
             }
+
+
+            var ActivityTrackingScope = userSettingList[0].ActivityTrackingScope;
+
             var active = ActiveWindowTracker.GetActiveWindowInfo();
 
             string appName = active.AppName;
             string windowTitle = active.Title;
             string exePath = active.ExePath;
+
+            // Skip tracking based on ActivityTrackingScope
+            if (ActivityTrackingScope == false)
+            {
+                // Active Apps Only — skip Desktop/minimized windows
+                if (string.IsNullOrEmpty(active.AppName) ||
+                    string.IsNullOrEmpty(active.ExePath) ||
+                    active.AppName.Equals("Desktop", StringComparison.OrdinalIgnoreCase) ||
+                    active.AppName.Equals("explorer", StringComparison.OrdinalIgnoreCase))
+                {
+                    //Debug.WriteLine("[Timer] Desktop/minimized — skipping (Active Apps Only).");
+
+                    if (!string.IsNullOrEmpty(lastApp))
+                        await Database.SaveSessionAsync(lastApp, lastTitle, lastStart, DateTime.Now, lastExePath);
+
+                    lastApp = null;
+                    lastTitle = null;
+                    lastExePath = null;
+                    lastStart = DateTime.Now;
+                    return;
+                }
+
+                if (string.IsNullOrWhiteSpace(windowTitle))
+                    return;
+            }
+            else // Entire Screen mode
+            {
+                // Track Desktop/wallpaper when nothing else active
+                if (string.IsNullOrEmpty(appName) ||
+                    appName.Equals("explorer", StringComparison.OrdinalIgnoreCase) ||
+                    appName.Equals("Desktop", StringComparison.OrdinalIgnoreCase))
+                {
+                    appName = "Desktop";
+                    windowTitle = "No active window";
+                    exePath = "C:\\Windows\\explorer.exe";
+                    //Debug.WriteLine("[Timer] Entire Screen mode: tracking Desktop session.");
+                }
+            }
+
+
+
 
             if (string.IsNullOrWhiteSpace(appName)) return;
 
@@ -202,12 +247,6 @@ namespace FocusTrack
                 lastStart = DateTime.Now;
                 lastExePath = null;
                 return;
-            }
-
-            // Skip tracking if title is missing
-            if (string.IsNullOrWhiteSpace(windowTitle))
-            {
-                return; 
             }
 
             if (appName != lastApp || windowTitle != lastTitle)
