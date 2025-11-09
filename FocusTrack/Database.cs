@@ -340,7 +340,8 @@ namespace FocusTrack
             { "Microsoft Store", ("Microsoft Store", "Assets/Icons/store.png") },
             { "Weather", ("Weather", "Assets/Icons/weather.png") },
             { "Maps", ("Maps", "Assets/Icons/maps.png") },
-            { "Alarms & Clock", ("Alarms & Clock", "Assets/Icons/clock.png") }
+            { "Alarms & Clock", ("Alarms & Clock", "Assets/Icons/clock.png") },
+            { "Desktop", ("Desktop", "Assets/Icons/desktop.png") }
         };
         private class AppUsageRaw
         {

@@ -145,6 +145,7 @@
                                 </Grid>
 
                                 <!-- Bottom Row: Start Time and End Time -->
+                                <!--
                                 <StackPanel Orientation="Horizontal"
                                     Margin="0,10,0,0">
                                     <TextBlock Text="Start Time: "
@@ -163,6 +164,7 @@
                                        FontSize="14"
                                        FontWeight="SemiBold"/>
                                 </StackPanel>
+                                -->
                             </StackPanel>
                         </Border>
                     </DataTemplate>

@@ -213,7 +213,7 @@ namespace FocusTrack
                 {
                     appName = "Desktop";
                     windowTitle = "No active window";
-                    exePath = "C:\\Windows\\explorer.exe";
+                    exePath = null;
                     //Debug.WriteLine("[Timer] Entire Screen mode: tracking Desktop session.");
                 }
             }
