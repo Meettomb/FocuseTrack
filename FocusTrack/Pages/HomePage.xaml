@@ -105,7 +105,7 @@
 
                 <!-- DataGrid -->
 
-                <ItemsControl x:Name="AppUsageGrid" ItemsSource="{Binding AppUsages}" Grid.Row="3" Margin="10 0 10 10">
+                <ItemsControl x:Name="AppUsageGrid" ItemsSource="{Binding AppUsages}" Grid.Row="3">
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>
                             <Border Background="#222"

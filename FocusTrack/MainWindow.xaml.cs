@@ -107,6 +107,7 @@ namespace FocusTrack
             InitializeComponent();
 
             MainFrame.Navigate(new HomePage());
+            MainFrame.Navigated += MainFrame_Navigated;
             // Create tray icon
             SetupNotifyIcon();
             DataContext = this;
@@ -385,6 +386,8 @@ namespace FocusTrack
 
                     appOpenCountPage.SelectedDate = DateTime.Today;
                 }
+
+             
             });
         }
 
@@ -419,34 +422,55 @@ namespace FocusTrack
 
         private void Maximize_Click(object sender, RoutedEventArgs e)
         {
-            var settingsPage = MainFrame.Content as Settings;
-            if (this.Tag == null || this.Tag.ToString() != "Maximized")
+            WindowState = (WindowState == WindowState.Normal)
+               ? WindowState.Maximized
+               : WindowState.Normal;
+
+            ApplyMarginsBasedOnWindowState();
+            // Optional: close popup if open
+            if (MainFrame.Content is Settings settingsPage && settingsPage.TimePopup.IsOpen)
             {
-                // Save restore size before maximizing
-                this.Tag = "Maximized";
-                this.Left = SystemParameters.WorkArea.Left;
-                this.Top = SystemParameters.WorkArea.Top;
-                this.Width = SystemParameters.WorkArea.Width;
-                this.Height = SystemParameters.WorkArea.Height;
-                if (settingsPage != null && settingsPage.TimePopup.IsOpen)
-                {
-                    settingsPage.TimePopup.IsOpen = false;
-                }
+                settingsPage.TimePopup.IsOpen = false;
+            }
+        }
+        private void MainFrame_Navigated(object sender, NavigationEventArgs e)
+        {
+            ApplyMarginsBasedOnWindowState();
+        }
+        private void ApplyMarginsBasedOnWindowState()
+        {
+            if (WindowState == WindowState.Maximized)
+            {
+                if (MainFrame.Content is FocusTrack.Pages.HomePage homePage)
+                    homePage.AppUsageGrid.Margin = new Thickness(10, 0, 10, 55);
+
+                if (MainFrame.Content is FocusTrack.Pages.AppDetailPage detailPage)
+                    detailPage.AppDetailPageScroll.Margin = new Thickness(10, 0, 10, 55);
+
+                if (MainFrame.Content is FocusTrack.Pages.AppOpenCountPage openPage)
+                    openPage.AppOpenCountGrid.Margin = new Thickness(10, 0, 10, 55);
+
+                SettinButton.Margin = new Thickness(5, 0, 0, 50);
+                H_A_Button.Margin = new Thickness(5, 0, 0, 50);
+                AppNameTitle.Margin = new Thickness(15, 0, 0, 0);
             }
             else
             {
-                // Restore
-                this.Tag = "Normal";
-                this.Width = 1000;
-                this.Height = 700;
-                this.Left = (SystemParameters.WorkArea.Width - this.Width) / 2;
-                this.Top = (SystemParameters.WorkArea.Height - this.Height) / 2;
-                if (settingsPage != null && settingsPage.TimePopup.IsOpen)
-                {
-                    settingsPage.TimePopup.IsOpen = false;
-                }
+                if (MainFrame.Content is FocusTrack.Pages.HomePage homePage)
+                    homePage.AppUsageGrid.Margin = new Thickness(10, 0, 10, 10);
+
+                if (MainFrame.Content is FocusTrack.Pages.AppDetailPage detailPage)
+                    detailPage.AppDetailPageScroll.Margin = new Thickness(0);
+
+                if (MainFrame.Content is FocusTrack.Pages.AppOpenCountPage openPage)
+                    openPage.AppOpenCountGrid.Margin = new Thickness(0);
+
+                SettinButton.Margin = new Thickness(0);
+                H_A_Button.Margin = new Thickness(0);
+                AppNameTitle.Margin = new Thickness(10, 0, 0, 0);
             }
         }
+
 
 
         private void Close_Click(object sender, RoutedEventArgs e)
@@ -569,7 +593,6 @@ namespace FocusTrack
                 MainFrame.Navigate(new HomePage());
             }
         }
-
         private void AppOpenTimeButton_Click(object sender, RoutedEventArgs e)
         {
             MainFrame.Navigate(new AppOpenCountPage());

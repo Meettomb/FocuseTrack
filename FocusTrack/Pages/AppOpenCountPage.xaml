@@ -12,7 +12,7 @@
       d:DesignHeight="450" d:DesignWidth="800"
       Title="AppOpenCountPage">
 
-    <Grid>
+    <Grid x:Name="AppOpenCountGrid">
         <ScrollViewer Grid.Column="1" VerticalScrollBarVisibility="Hidden"
          CanContentScroll="False"
          PanningMode="VerticalFirst">

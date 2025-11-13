@@ -38,7 +38,7 @@
         <!-- Header (fixed, not scrollable) -->
         <Border Background="#222" Grid.Row="0" Height="auto" VerticalAlignment="Top" MouseDown="Header_MouseDown">
             <Grid>
-                <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="10 0 0 0">
+                <StackPanel x:Name="AppNameTitle" Orientation="Horizontal" VerticalAlignment="Center" Margin="10 0 0 0">
                     <Image Source="/Images/AppLogo/FocusTrack.png" Width="27" Height="Auto"/>
                     <TextBlock Text="Focus Track"
                                VerticalAlignment="Center"
@@ -71,7 +71,7 @@
                     <RowDefinition Height="*"/>
                     <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
-                <StackPanel Grid.Row="0"  Grid.Column="0" VerticalAlignment="Stretch">
+                <StackPanel Grid.Row="0" x:Name="H_A_Button" Grid.Column="0" VerticalAlignment="Stretch">
 
                     <Button Style="{StaticResource NavButton1}" Click="HomeButton_Click"/>
                     <Button Style="{StaticResource NavButton2}" Click="AppOpenTimeButton_Click"/>
@@ -79,7 +79,7 @@
 
                 </StackPanel>
 
-                <StackPanel Grid.Row="2" Background="#222" Grid.Column="0" VerticalAlignment="Stretch">
+                <StackPanel x:Name="SettinButton" Grid.Row="2" Background="#222" Grid.Column="0" VerticalAlignment="Stretch">
 
                     <Button Style="{StaticResource NavButton3}" Click="SettingButton_Click"/>
 
