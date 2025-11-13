@@ -11,6 +11,7 @@ using System.Drawing;
 using System.Drawing.Imaging;
 using System.IO;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Xceed.Wpf.Toolkit.Primitives;
 using static SkiaSharp.HarfBuzz.SKShaper;
@@ -19,6 +20,7 @@ namespace FocusTrack
 {
     public static class Database
     {
+
         private static string DbFile => Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "usage.db");
         private static string ConnString => $"Data Source={DbFile};Version=3;DateTimeKind=Utc;DateTimeFormat=ISO8601;";
 
@@ -1110,6 +1112,125 @@ namespace FocusTrack
 
 
         }
+
+
+        private static CancellationTokenSource _cleanupCts;
+        private static Task _cleanupTask;
+
+        public static async Task CleanDuplicatesRecordAsync()
+        {
+            const string sql1 = @"
+                DELETE FROM AppUsage
+                WHERE ID IN (
+                    SELECT b.ID
+                    FROM AppUsage a
+                    JOIN AppUsage b
+                      ON a.AppName = b.AppName
+                      AND a.WindowTitle = b.WindowTitle
+                      AND IFNULL(a.ExePath, '') = IFNULL(b.ExePath, '')
+                      AND ABS(strftime('%s', a.StartTime) - strftime('%s', b.StartTime)) <= 1
+                      AND ABS(strftime('%s', a.EndTime) - strftime('%s', b.EndTime)) <= 1
+                      AND ABS(a.DurationSeconds - b.DurationSeconds) <= 1
+                      AND a.ID < b.ID
+                    WHERE a.EndTime >= datetime('now', '-4 hour')
+                );";
+
+            const string sql2 = @"
+            WITH Keepers AS (
+                SELECT MAX(Id) AS IdToKeep
+                FROM AppUsage
+                WHERE AppName IS NOT NULL AND StartTime IS NOT NULL
+                GROUP BY AppName, StartTime
+            )
+            DELETE FROM AppUsage
+            WHERE Id NOT IN (SELECT IdToKeep FROM Keepers);
+        ";
+
+            try
+            {
+                using (var conn = new SQLiteConnection(ConnString))
+                {
+                    await conn.OpenAsync();
+
+                    int totalDeleted = 0;
+
+                    // Step 1: near-duplicate cleanup
+                    using (var cmd1 = conn.CreateCommand())
+                    {
+                        cmd1.CommandText = sql1;
+                        int affected1 = await cmd1.ExecuteNonQueryAsync();
+                        totalDeleted += affected1;
+                        //Debug.WriteLine($"🧹 Step 1: Deleted {affected1} recent duplicates.");
+                    }
+
+                    // Step 2: overlapping cleanup (safe version)
+                    using (var cmd2 = conn.CreateCommand())
+                    {
+                        cmd2.CommandText = sql2;
+                        int affected2 = await cmd2.ExecuteNonQueryAsync();
+                        totalDeleted += affected2;
+                        //Debug.WriteLine($"🧹 Step 2: Deleted {affected2} global duplicates.");
+                    }
+
+                    //Debug.WriteLine($"✅ Total {totalDeleted} records deleted at {DateTime.Now:HH:mm:ss}");
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine("❌ CleanDuplicatesRecordAsync failed: " + ex.Message);
+            }
+        }
+        public static void StartAutoCleanupLoop()
+        {
+            if (_cleanupTask != null && !_cleanupTask.IsCompleted)
+                return;
+
+            _cleanupCts = new CancellationTokenSource();
+            _cleanupTask = Task.Run(() => CleanupLoopAsync(_cleanupCts.Token));
+        }
+
+        private static async Task CleanupLoopAsync(CancellationToken token)
+        {
+            //Debug.WriteLine("🕒 Auto-cleanup background task started.");
+
+            while (!token.IsCancellationRequested)
+            {
+                try
+                {
+                    await CleanDuplicatesRecordAsync();
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine("[AutoCleanup] Error: " + ex.Message);
+                }
+
+                DateTime now = DateTime.Now;
+                DateTime nextHour = new DateTime(now.Year, now.Month, now.Day, now.Hour, 0, 0).AddHours(1);
+                TimeSpan delay = nextHour - now;
+
+                try
+                {
+                    await Task.Delay(delay, token);
+                }
+                catch (TaskCanceledException)
+                {
+                    break;
+                }
+            }
+
+            Debug.WriteLine("🛑 Auto-cleanup background task stopped.");
+        }
+        public static void StopAutoCleanupLoop()
+        {
+            if (_cleanupCts != null)
+            {
+                _cleanupCts.Cancel();
+                _cleanupCts = null;
+                _cleanupTask = null;
+            }
+        }
+
+
 
     }
 

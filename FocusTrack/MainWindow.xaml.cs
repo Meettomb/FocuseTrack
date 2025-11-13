@@ -97,6 +97,11 @@ namespace FocusTrack
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
         }
 
+        private static bool _isProcessing = false; // For stop Duplicate entry ni Yash Laptop
+        private DateTime? pendingDesktopStart = null;
+        private DateTime? pendingDesktopEnd = null;
+
+
         public MainWindow()
         {
             InitializeComponent();
@@ -146,122 +151,204 @@ namespace FocusTrack
 
         private async void Timer_Elapsed(object sender, ElapsedEventArgs e)
         {
-            if (isSystemSleeping)
+            if (_isProcessing) return; 
+                _isProcessing = true;
+
+            try
             {
-                if (!string.IsNullOrEmpty(lastApp) && sleepStartTime.HasValue)
+                if (isSystemSleeping)
                 {
-                    await Database.SaveSessionAsync(lastApp, lastTitle, lastStart, sleepStartTime.Value, lastExePath);
-                    Debug.WriteLine($"[SAVE] Session ended due to sleep at {sleepStartTime.Value}");
-                }
-
-                lastApp = null;
-                lastTitle = null;
-                lastStart = DateTime.Now;
-                lastExePath = null;
-
-                return; // Skip saving during sleep
-            }
-
-
-
-            var userSettingList = await GetUserSettings();
-            var TrackPrivateMode = userSettingList[0].TrackPrivateMode;
-            if (TrackPrivateMode == false)
-            {
-
-            }
-
-
-            var ActivityTrackingScope = userSettingList[0].ActivityTrackingScope;
-
-            var active = ActiveWindowTracker.GetActiveWindowInfo();
-
-            string appName = active.AppName;
-            string windowTitle = active.Title;
-            string exePath = active.ExePath;
-
-            // Skip tracking based on ActivityTrackingScope
-            if (ActivityTrackingScope == false)
-            {
-                // Active Apps Only — skip Desktop/minimized windows
-                if (string.IsNullOrEmpty(active.AppName) ||
-                    string.IsNullOrEmpty(active.ExePath) ||
-                    active.AppName.Equals("Desktop", StringComparison.OrdinalIgnoreCase) ||
-                    active.AppName.Equals("explorer", StringComparison.OrdinalIgnoreCase))
-                {
-                    //Debug.WriteLine("[Timer] Desktop/minimized — skipping (Active Apps Only).");
-
-                    if (!string.IsNullOrEmpty(lastApp))
-                        await Database.SaveSessionAsync(lastApp, lastTitle, lastStart, DateTime.Now, lastExePath);
+                    if (!string.IsNullOrEmpty(lastApp) && sleepStartTime.HasValue)
+                    {
+                        await Database.SaveSessionAsync(lastApp, lastTitle, lastStart, sleepStartTime.Value, lastExePath);
+                        Debug.WriteLine($"[SAVE] Session ended due to sleep at {sleepStartTime.Value}");
+                    }
 
                     lastApp = null;
                     lastTitle = null;
-                    lastExePath = null;
                     lastStart = DateTime.Now;
+                    lastExePath = null;
+
+                    return; // Skip saving during sleep
+                }
+
+                var userSettingList = await GetUserSettings();
+                var TrackPrivateMode = userSettingList[0].TrackPrivateMode;
+                if (TrackPrivateMode == false)
+                {
+
+                }
+
+                var ActivityTrackingScope = userSettingList[0].ActivityTrackingScope;
+
+                var active = ActiveWindowTracker.GetActiveWindowInfo();
+
+                string appName = active.AppName;
+                string windowTitle = active.Title;
+                string exePath = active.ExePath;
+
+                // Skip tracking based on ActivityTrackingScope
+                if (ActivityTrackingScope == false)
+                {
+                    // Active Apps Only — skip Desktop/minimized windows
+                    // Active Apps Only — track visible apps only
+                    if (string.IsNullOrEmpty(active.AppName) && string.IsNullOrEmpty(active.ExePath))
+                    {
+                        // No active window — skip
+                        if (!string.IsNullOrEmpty(lastApp))
+                            await Database.SaveSessionAsync(lastApp, lastTitle, lastStart, DateTime.Now, lastExePath);
+
+                        lastApp = null;
+                        lastTitle = null;
+                        lastExePath = null;
+                        lastStart = DateTime.Now;
+                        return;
+                    }
+
+                    // 🟢 Allow File Explorer but skip Desktop
+                    if (active.AppName.Equals("Desktop", StringComparison.OrdinalIgnoreCase))
+                    {
+                        // Desktop detected — skip in Active Apps Only
+                        if (!string.IsNullOrEmpty(lastApp))
+                            await Database.SaveSessionAsync(lastApp, lastTitle, lastStart, DateTime.Now, lastExePath);
+
+                        lastApp = null;
+                        lastTitle = null;
+                        lastExePath = null;
+                        lastStart = DateTime.Now;
+                        return;
+
+                    }
+
+
+                    if (string.IsNullOrWhiteSpace(windowTitle))
+                        return;
+                }
+                else // Entire Screen mode
+                {
+                    // Track Desktop/wallpaper when nothing else active
+                    if (string.IsNullOrEmpty(appName) ||
+                        appName.Equals("Desktop", StringComparison.OrdinalIgnoreCase))
+                    {
+                        // If this is the first moment with no active app, start the pending timer
+                        if (pendingDesktopStart == null)
+                            pendingDesktopStart = DateTime.Now;
+
+                        // Wait at least 3 seconds before considering it real Desktop time
+                        if ((DateTime.Now - pendingDesktopStart.Value).TotalSeconds < 3)
+                            return; // still switching — skip
+
+                        // 🟩 Save previous app session only once when entering Desktop
+                        if (lastApp != "Desktop" && !string.IsNullOrEmpty(lastApp))
+                        {
+                            var duration = (DateTime.Now - lastStart).TotalSeconds;
+                            if (duration > 2)
+                            {
+                                _ = Task.Run(() => Database.SaveSessionAsync(lastApp, lastTitle, lastStart, DateTime.Now, lastExePath));
+                                Debug.WriteLine($"[Timer] Saved session: {lastApp} ({duration:F1}s)");
+                            }
+                        }
+
+                        // ✅ Only set Desktop once (don’t reset every tick)
+                        if (lastApp != "Desktop")
+                        {
+                            lastApp = "Desktop";
+                            lastTitle = "No active window";
+                            lastExePath = null;
+                            lastStart = pendingDesktopStart.Value;
+                            Debug.WriteLine("[Timer] Desktop tracking started (idle >3s).");
+                        }
+
+                        pendingDesktopEnd = null; // reset pending end if user still idle
+                        return; // stay on Desktop
+                    }
+                    else
+                    {
+                        // 🟡 User switched away from Desktop — wait a bit before ending session
+                        if (lastApp == "Desktop")
+                        {
+                            if (pendingDesktopEnd == null)
+                            {
+                                pendingDesktopEnd = DateTime.Now; // mark possible exit time
+                                Debug.WriteLine("[Timer] Desktop exit detected — waiting to confirm...");
+                                return;
+                            }
+
+                            // ✅ Confirm Desktop exit only if still off Desktop for >2s
+                            if ((DateTime.Now - pendingDesktopEnd.Value).TotalSeconds > 2)
+                            {
+                                var endTime = DateTime.Now;
+                                _ = Task.Run(() => Database.SaveSessionAsync(lastApp, lastTitle, lastStart, endTime, lastExePath));
+                                Debug.WriteLine($"[Timer] Desktop session ended at {endTime}");
+                                lastApp = null;
+                                pendingDesktopEnd = null;
+                            }
+                        }
+                        else
+                        {
+                            pendingDesktopEnd = null; // reset if user not leaving Desktop
+                        }
+
+                        pendingDesktopStart = null; // reset idle detection
+                    }
+                }
+
+
+
+                if (string.IsNullOrWhiteSpace(appName)) return;
+
+                string myExeName = Process.GetCurrentProcess().MainModule.FileName;
+
+                // Fetch user settings once per timer tick
+                bool trackPrivateMode = userSettingList[0].TrackPrivateMode;
+                bool isBlocked = !trackPrivateMode && Database.TrackingFilters.BlockedKeywords
+                           .Any(k => windowTitle?.ToLowerInvariant().Contains(k) ?? false);
+                // Skip tracking if blocked
+                if (isBlocked) return;
+
+                // Skip tracking for your own app
+                if (string.Equals(exePath, myExeName, StringComparison.OrdinalIgnoreCase))
+                {
+                    if (!string.IsNullOrEmpty(lastApp))
+                    {
+                        await Database.SaveSessionAsync(lastApp, lastTitle, lastStart, DateTime.Now, lastExePath);
+                    }
+
+                    lastApp = null;
+                    lastTitle = null;
+                    lastStart = DateTime.Now;
+                    lastExePath = null;
                     return;
                 }
 
-                if (string.IsNullOrWhiteSpace(windowTitle))
-                    return;
-            }
-            else // Entire Screen mode
-            {
-                // Track Desktop/wallpaper when nothing else active
-                if (string.IsNullOrEmpty(appName) ||
-                    appName.Equals("explorer", StringComparison.OrdinalIgnoreCase) ||
-                    appName.Equals("Desktop", StringComparison.OrdinalIgnoreCase))
+                if (appName != lastApp || windowTitle != lastTitle)
                 {
-                    appName = "Desktop";
-                    windowTitle = "No active window";
-                    exePath = null;
-                    //Debug.WriteLine("[Timer] Entire Screen mode: tracking Desktop session.");
+                    if (!string.IsNullOrEmpty(lastApp))
+                    {
+                        await Database.SaveSessionAsync(lastApp, lastTitle, lastStart, DateTime.Now, lastExePath);
+                    }
+
+                    lastApp = appName;
+                    lastTitle = windowTitle;
+                    lastStart = DateTime.Now;
+                    lastExePath = exePath;
                 }
+                //Debug.WriteLine($"[Timer] ENTER at {DateTime.Now:HH:mm:ss.fff}");
+                //await Task.Delay(1500); // simulate slow DB write
+                //Debug.WriteLine($"[Timer] EXIT at {DateTime.Now:HH:mm:ss.fff}");
+
             }
-
-
-
-
-            if (string.IsNullOrWhiteSpace(appName)) return;
-
-            string myExeName = Process.GetCurrentProcess().MainModule.FileName;
-
-            // Fetch user settings once per timer tick
-            bool trackPrivateMode = userSettingList[0].TrackPrivateMode;
-            bool isBlocked = !trackPrivateMode && Database.TrackingFilters.BlockedKeywords
-                       .Any(k => windowTitle?.ToLowerInvariant().Contains(k) ?? false);
-            // Skip tracking if blocked
-            if (isBlocked) return;
-
-
-
-            // Skip tracking for your own app
-            if (string.Equals(exePath, myExeName, StringComparison.OrdinalIgnoreCase))
+            catch (Exception ex)
             {
-                if (!string.IsNullOrEmpty(lastApp))
-                {
-                    await Database.SaveSessionAsync(lastApp, lastTitle, lastStart, DateTime.Now, lastExePath);
-                }
-
-                lastApp = null;
-                lastTitle = null;
-                lastStart = DateTime.Now;
-                lastExePath = null;
-                return;
+                Debug.WriteLine($"[Timer_Elapsed Error] {ex.Message}");
             }
-
-            if (appName != lastApp || windowTitle != lastTitle)
+            finally
             {
-                if (!string.IsNullOrEmpty(lastApp))
-                {
-                    await Database.SaveSessionAsync(lastApp, lastTitle, lastStart, DateTime.Now, lastExePath);
-                }
-
-                lastApp = appName;
-                lastTitle = windowTitle;
-                lastStart = DateTime.Now;
-                lastExePath = exePath;
+                // ✅ Always release the lock
+                _isProcessing = false;
             }
-           
+
+
         }
         
         private async Task RefreshUIAsync()

@@ -40,8 +40,13 @@ namespace FocusTrack
         [DllImport("user32.dll")]
         private static extern bool IsIconic(IntPtr hWnd);
 
-       
-        
+        // for Webscraping app to make thame stop by tracking only visible windows
+        // Yash Laptop
+        [DllImport("user32.dll")]
+        private static extern bool IsWindowVisible(IntPtr hWnd);
+        // Yash Laptop
+
+
         private const uint PROCESS_QUERY_LIMITED_INFORMATION = 0x1000;
 
 
@@ -173,14 +178,37 @@ namespace FocusTrack
                 //Debug.WriteLine("[GetActiveWindowInfo] Window is minimized — skipping tracking.");
                 return ("", "", "", null);
             }
-                // Skip desktop when app minimized
-            if (proc.ProcessName.Equals("explorer", StringComparison.OrdinalIgnoreCase) &&
-                (string.IsNullOrEmpty(proc.MainWindowTitle) ||
-                 proc.MainWindowTitle.Equals("Program Manager", StringComparison.OrdinalIgnoreCase)))
+            // Skip desktop when app minimized
+            // ✅ New block: handle Explorer properly
+
+            // ✅ Handle Explorer properly — detect Desktop vs File Explorer
+            if (proc.ProcessName.Equals("explorer", StringComparison.OrdinalIgnoreCase))
             {
-                //Debug.WriteLine("[GetActiveWindowInfo] Desktop or minimized app detected — skipping tracking.");
-                return ("", "", "", null);
+                // Always get the latest window title from the window handle
+                var sbTitle = new StringBuilder(256);
+                GetWindowText(hwnd, sbTitle, sbTitle.Capacity);
+                string title = sbTitle.ToString().Trim();
+
+                // 🟥 Case 1: Real Desktop (no active window)
+                if (string.IsNullOrEmpty(title) ||
+                    title.Equals("Program Manager", StringComparison.OrdinalIgnoreCase) ||
+                    title.Equals("System tray overflow window", StringComparison.OrdinalIgnoreCase))
+                {
+                    // Desktop itself — for Entire Screen mode
+                    return ("Desktop", "No active window", "C:\\Windows\\explorer.exe", null);
+                }
+
+                // 🟩 Case 2: Real File Explorer window (Documents, This PC, etc.)
+                string explorerExe = "C:\\Windows\\explorer.exe";
+                byte[] iconBytes = IconHelper.GetIconBytes(explorerExe);
+                //Debug.WriteLine($"[Explorer] Title='{title}', Returning AppName={(string.IsNullOrEmpty(title) ? "Desktop" : "File Explorer")}");
+
+                return ("explorer", title, explorerExe, iconBytes);
             }
+
+
+
+
 
             // Ignore unwanted system processes
             if (IgnoredProcesses.Contains(proc.ProcessName))
@@ -207,6 +235,29 @@ namespace FocusTrack
             //bool isOnCurrent = IsWindowOnCurrentDesktop(hwnd);
             //Debug.WriteLine($"[Desktop Check] {proc.ProcessName} on current desktop? {isOnCurrent}");
 
+            //Yash Laptop
+            // --- [Prevent false Chrome logs from scrapers or automation] ---
+            string procNameLower = proc.ProcessName.ToLowerInvariant();
+                    string windowTitleLower = proc.MainWindowTitle?.ToLowerInvariant() ?? "";
+
+                    // Skip invisible (hidden) or background windows
+                    if (!IsWindowVisible(hwnd))
+                    {
+                        Debug.WriteLine($"[SKIP] Hidden window for {procNameLower}");
+                        return ("", "", "", null);
+                    }
+                    // Skip Chrome automation / scraper instances
+                    if (procNameLower.Contains("chromedriver") ||
+                        procNameLower.Contains("geckodriver") ||
+                        procNameLower.Contains("edgewebdriver") ||
+                        windowTitleLower.Contains("data:,") ||
+                        windowTitleLower.Contains("automation") ||
+                        windowTitleLower.Contains("headless"))
+                    {
+                        Debug.WriteLine($"[SKIP] Automation process detected: {procNameLower} | {windowTitleLower}");
+                        return ("", "", "", null);
+                    }
+            // Yash Laptop
 
 
             // Get window title
@@ -216,15 +267,7 @@ namespace FocusTrack
             //Debug.WriteLine($"[GetActiveWindowInfo] Window Title: {windowTitle}");
 
             // Ignore Windows "System Tray overflow window" or empty Explorer windows
-            if (proc.ProcessName.Equals("explorer", StringComparison.OrdinalIgnoreCase) &&
-                (proc.MainWindowTitle.Equals("Program Manager", StringComparison.OrdinalIgnoreCase) ||
-                proc.MainWindowTitle.Equals("System tray overflow window", StringComparison.OrdinalIgnoreCase) ||
-                string.IsNullOrWhiteSpace(proc.MainWindowTitle)))
-            {
-                //return ("", "", "", null);
-                return ("Desktop", "No active window", "C:\\Windows\\explorer.exe", null);
-            }
-
+            
             if (string.IsNullOrWhiteSpace(proc.MainWindowTitle))
             {
                 return ("", "", "", null);

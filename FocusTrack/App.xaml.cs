@@ -19,9 +19,18 @@ namespace FocusTrack
             //ActiveWindowTracker.InitializePowerEventHandlers();
             // Ensure DB + table exist before UI
             FocusTrack.Database.Initialize();
+            // Start hourly background cleanup
+            Database.StartAutoCleanupLoop();
 
             var mainWindow = new MainWindow();
             mainWindow.Show();
+        }
+
+        protected override void OnExit(ExitEventArgs e)
+        {
+            // Stop background cleanup gracefully
+            Database.StopAutoCleanupLoop();
+            base.OnExit(e);
         }
 
     }
