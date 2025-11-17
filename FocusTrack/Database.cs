@@ -327,6 +327,7 @@ namespace FocusTrack
         {
             { "ApplicationFrameHost", ("ApplicationFrameHost", "Assets/Icons/ApplicationFramHost2.png") },
             { "WhatsApp", ("WhatsApp", "Assets/Icons/WhatsApp.png") },
+            { "WhatsApp.Root", ("WhatsApp", "Assets/Icons/WhatsApp.png") },
             { "Spotify", ("Spotify", "Assets/Icons/spotify.png") },
             { "Microsoft Teams", ("Microsoft Teams", "Assets/Icons/teams.png") },
             { "Telegram", ("Telegram", "Assets/Icons/telegram.png") },

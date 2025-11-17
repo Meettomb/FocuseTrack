@@ -105,6 +105,7 @@ namespace FocusTrack
             new Dictionary<string, (string, string)>(StringComparer.OrdinalIgnoreCase)
             {
                 { "WhatsApp", ("WhatsApp", "Assets/Icons/WhatsApp.png") },
+                { "WhatsApp.Root", ("WhatsApp", "Assets/Icons/WhatsApp.png") },
                 { "Spotify", ("Spotify", "Assets/Icons/spotify.png") },
                 { "Microsoft Teams", ("Microsoft Teams", "Assets/Icons/teams.png") },
                 { "Telegram", ("Telegram", "Assets/Icons/telegram.png") },
@@ -170,7 +171,6 @@ namespace FocusTrack
                 //Debug.WriteLine($"[GetActiveWindowInfo] Failed to get process for PID {pid}");
                 return ("Unknown", "", "", null);
             }
-
 
             //  Skip minimized windows
             if (IsIconic(hwnd))
@@ -317,6 +317,20 @@ namespace FocusTrack
 
             string appName = GetFriendlyAppName(proc, proc.ProcessName);
             //Debug.WriteLine($"[GetActiveWindowInfo] Final app name: {appName}");
+            if (proc.ProcessName.IndexOf("WhatsApp", StringComparison.OrdinalIgnoreCase) >= 0)
+            {
+                appName = "WhatsApp";
+                appIcon = null;
+            }
+            string processName = proc.ProcessName;
+            int rootIndex = processName.IndexOf(".root", StringComparison.OrdinalIgnoreCase);
+
+            if (rootIndex >= 0)
+            {
+                processName = processName.Substring(0, rootIndex); // remove the .Root part
+            }
+
+
 
             return (appName, windowTitle, exePath, appIcon);
         }
