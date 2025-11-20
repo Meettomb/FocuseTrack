@@ -733,6 +733,8 @@ namespace FocusTrack
                 bool NotifyBreakEveryTimeExists = false;
                 bool ActivityTrackingScopeExists = false;
                 bool HistoryRetentionPeriodExiste = false;
+                bool LastCleanupDateExists = false;
+
                 using (var checkCmd = conn.CreateCommand())
                 {
                     checkCmd.CommandText = "PRAGMA table_info(UserSettings);";
@@ -754,6 +756,10 @@ namespace FocusTrack
                             }
                             if(columnName.Equals("HistoryRetentionPeriod", StringComparison.OrdinalIgnoreCase)){
                                 HistoryRetentionPeriodExiste = true;
+                            }
+                            if (columnName.Equals("LastCleanupDate", StringComparison.OrdinalIgnoreCase))
+                            {
+                                LastCleanupDateExists = true;
                             }
                         }
                     }
@@ -787,7 +793,7 @@ namespace FocusTrack
                                 NotifyBreakEveryTime = NotifyBreakEveryTimeExists ? Convert.ToBoolean(reader["NotifyBreakEveryTime"]) : false,
                                 ActivityTrackingScope = ActivityTrackingScopeExists ? Convert.ToBoolean(reader["ActivityTrackingScope"]) : false,
                                 HistoryRetentionPeriod = HistoryRetentionPeriodExiste ? Convert.ToString(reader["HistoryRetentionPeriod"]) : "Forever",
-                                LastCleanupDate = reader["LastCleanupDate"]?.ToString() ?? ""
+                                LastCleanupDate = LastCleanupDateExists ? reader["LastCleanupDate"]?.ToString() : ""
                             });
                         }
                     }
@@ -1336,8 +1342,6 @@ namespace FocusTrack
         {
             switch (retentionPeriod)
             {
-                case "Test Only":
-                    return 1;
                 case "3 Months":
                     return 91;
                 case "6 Months":
@@ -1348,7 +1352,6 @@ namespace FocusTrack
                     return -1;
             }
         }
-
         public static async Task CleanHistoryAccordingToRetentionOncePerDay()
         {
             await EnsureHistoryRetentionPeriodColumns();
@@ -1386,8 +1389,6 @@ namespace FocusTrack
 
             Debug.WriteLine("📌 Cleanup date updated successfully.");
         }
-
-
         public static async Task CleanHistoryAccordingToRetention()
         {
             var settings = (await GetUserSettings()).FirstOrDefault();

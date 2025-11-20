@@ -492,9 +492,6 @@
                           FontSize="17"
                           SelectionChanged="HistoryRetentionPeriodListBox_SelectionChanged">
                                 <ListBoxItem Content="Forever" Height="40"/>
-                                <ListBoxItem Content="Test Only"
-                                  Margin="0 5 0 0"
-                                  Height="40"/>
                                 <ListBoxItem Content="3 Months"
                                   Margin="0 5 0 0"
                                   Height="40"/>
