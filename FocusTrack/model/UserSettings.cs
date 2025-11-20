@@ -15,5 +15,6 @@ namespace FocusTrack.model
         public bool NotifyBreakEveryTime { get; set; }
         public bool ActivityTrackingScope { get; set; }
         public string HistoryRetentionPeriod { get; set; }
+        public string LastCleanupDate { get; set; }
     }
 }

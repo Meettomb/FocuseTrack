@@ -146,8 +146,6 @@ namespace FocusTrack
             // Subscribe to session switch (lock/unlock)
             SystemEvents.SessionSwitch += OnSessionSwitch;
             StartLidWatcher();
-
-
         }
 
         private async void Timer_Elapsed(object sender, ElapsedEventArgs e)

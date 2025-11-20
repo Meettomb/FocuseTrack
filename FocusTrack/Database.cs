@@ -75,7 +75,8 @@ namespace FocusTrack
                             BreakTime TEXT DEFAULT '00:00',
                             NotifyBreakEveryTime INTEGER DEFAULT 0,
                             ActivityTrackingScope INTEGER DEFAULT 0,
-                            HistoryRetentionPeriod TEXT DEFAULT 'Forever'
+                            HistoryRetentionPeriod TEXT DEFAULT 'Forever',
+                            LastCleanupDate TEXT
                         );";
                         // 0 = Active Apps Only AND 1 = Entire Screen, In ActivityTrackingScope
                         cmd.ExecuteNonQuery();
@@ -84,8 +85,8 @@ namespace FocusTrack
 
                         // Ensure at least one row exists
                         cmd.CommandText = @"
-                        INSERT INTO UserSettings (TrackPrivateMode, TrackVPN, BreakTime, NotifyBreakEveryTime, ActivityTrackingScope, HistoryRetentionPeriod)
-                        SELECT 1, 1, '00:00', 0, 0, 'Forever'
+                        INSERT INTO UserSettings (TrackPrivateMode, TrackVPN, BreakTime, NotifyBreakEveryTime, ActivityTrackingScope, HistoryRetentionPeriod, LastCleanupDate)
+                        SELECT 1, 1, '00:00', 0, 0, 'Forever', ''
                         WHERE NOT EXISTS (SELECT 1 FROM UserSettings);
                     ";
                         cmd.ExecuteNonQuery();
@@ -731,6 +732,7 @@ namespace FocusTrack
                 bool breakTimeExists = false;
                 bool NotifyBreakEveryTimeExists = false;
                 bool ActivityTrackingScopeExists = false;
+                bool HistoryRetentionPeriodExiste = false;
                 using (var checkCmd = conn.CreateCommand())
                 {
                     checkCmd.CommandText = "PRAGMA table_info(UserSettings);";
@@ -750,13 +752,18 @@ namespace FocusTrack
                             if(columnName.Equals("ActivityTrackingScope", StringComparison.OrdinalIgnoreCase)){
                                 ActivityTrackingScopeExists = true;
                             }
+                            if(columnName.Equals("HistoryRetentionPeriod", StringComparison.OrdinalIgnoreCase)){
+                                HistoryRetentionPeriodExiste = true;
+                            }
                         }
                     }
                 }
 
                 using (var cmd = conn.CreateCommand())
                 {
-                    if (breakTimeExists && NotifyBreakEveryTimeExists && ActivityTrackingScopeExists)
+                    if(breakTimeExists && NotifyBreakEveryTimeExists && ActivityTrackingScopeExists && HistoryRetentionPeriodExiste)
+                        cmd.CommandText = "SELECT Id, TrackPrivateMode, TrackVPN, BreakTime, NotifyBreakEveryTime, ActivityTrackingScope, HistoryRetentionPeriod, LastCleanupDate FROM UserSettings LIMIT 1";
+                    else if (breakTimeExists && NotifyBreakEveryTimeExists && ActivityTrackingScopeExists)
                         cmd.CommandText = "SELECT Id, TrackPrivateMode, TrackVPN, BreakTime, NotifyBreakEveryTime, ActivityTrackingScope FROM UserSettings LIMIT 1";
                     else if (breakTimeExists && NotifyBreakEveryTimeExists)
                         cmd.CommandText = "SELECT Id, TrackPrivateMode, TrackVPN, BreakTime, NotifyBreakEveryTime FROM UserSettings LIMIT 1";
@@ -778,7 +785,9 @@ namespace FocusTrack
                                 TrackVPN = Convert.ToBoolean(reader["TrackVPN"]),
                                 BreakTime = breakTimeExists ? Convert.ToString(reader["BreakTime"]) : "00:00",
                                 NotifyBreakEveryTime = NotifyBreakEveryTimeExists ? Convert.ToBoolean(reader["NotifyBreakEveryTime"]) : false,
-                                ActivityTrackingScope = ActivityTrackingScopeExists ? Convert.ToBoolean(reader["ActivityTrackingScope"]) : false
+                                ActivityTrackingScope = ActivityTrackingScopeExists ? Convert.ToBoolean(reader["ActivityTrackingScope"]) : false,
+                                HistoryRetentionPeriod = HistoryRetentionPeriodExiste ? Convert.ToString(reader["HistoryRetentionPeriod"]) : "Forever",
+                                LastCleanupDate = reader["LastCleanupDate"]?.ToString() ?? ""
                             });
                         }
                     }
@@ -1171,6 +1180,40 @@ namespace FocusTrack
             }
         }
 
+        public static async Task EnsureLastCleanupDateColumn()
+        {
+            using (var conn = new SQLiteConnection(ConnString))
+            {
+                await conn.OpenAsync();
+
+                bool exists = false;
+                using (var cmd = conn.CreateCommand())
+                {
+                    cmd.CommandText = "PRAGMA table_info(UserSettings);";
+                    using (var reader = await cmd.ExecuteReaderAsync())
+                    {
+                        while (await reader.ReadAsync())
+                        {
+                            if (reader["name"].ToString() == "LastCleanupDate")
+                            {
+                                exists = true;
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                if (!exists)
+                {
+                    using (var cmd = conn.CreateCommand())
+                    {
+                        cmd.CommandText = @"ALTER TABLE UserSettings ADD COLUMN LastCleanupDate TEXT DEFAULT '';";
+                        await cmd.ExecuteNonQueryAsync();
+                    }
+                }
+            }
+        }
+
 
         private static CancellationTokenSource _cleanupCts;
         private static Task _cleanupTask;
@@ -1287,6 +1330,99 @@ namespace FocusTrack
                 _cleanupTask = null;
             }
         }
+
+        // Delete old records based on retention period
+        private static int GetRetentionDays(string retentionPeriod)
+        {
+            switch (retentionPeriod)
+            {
+                case "Test Only":
+                    return 1;
+                case "3 Months":
+                    return 91;
+                case "6 Months":
+                    return 181;
+                case "1 Year":
+                    return 366;
+                default:
+                    return -1;
+            }
+        }
+
+        public static async Task CleanHistoryAccordingToRetentionOncePerDay()
+        {
+            await EnsureHistoryRetentionPeriodColumns();
+            await EnsureLastCleanupDateColumn();
+
+            var settings = (await GetUserSettings()).FirstOrDefault();
+            if (settings == null) return;
+
+            // Read last cleanup date
+            if (!DateTime.TryParse(settings.LastCleanupDate, out DateTime lastCleanup))
+                lastCleanup = DateTime.MinValue;
+
+            // 🛑 Check - Skip cleanup if already done today
+            if (lastCleanup.Date >= DateTime.Now.Date)
+            {
+                Debug.WriteLine($"🛑 Cleanup skipped. Already executed today at {lastCleanup:yyyy-MM-dd}.");
+                return;  // ❗ DO NOT UPDATE DATE OR CLEAN!
+            }
+
+            // 🚀 Only run if needed
+            Debug.WriteLine("🚀 Starting history cleanup...");
+            await CleanHistoryAccordingToRetention();
+
+            // Update last cleanup date
+            using (var conn = new SQLiteConnection(ConnString))
+            {
+                await conn.OpenAsync();
+                using (var cmd = conn.CreateCommand())
+                {
+                    cmd.CommandText = "UPDATE UserSettings SET LastCleanupDate = @date WHERE Id = 1;";
+                    cmd.Parameters.AddWithValue("@date", DateTime.Now.ToString("yyyy-MM-dd"));
+                    await cmd.ExecuteNonQueryAsync();
+                }
+            }
+
+            Debug.WriteLine("📌 Cleanup date updated successfully.");
+        }
+
+
+        public static async Task CleanHistoryAccordingToRetention()
+        {
+            var settings = (await GetUserSettings()).FirstOrDefault();
+            if (settings == null) return;
+
+            int retentionDays = GetRetentionDays(settings.HistoryRetentionPeriod);
+            if (retentionDays < 0)
+            {
+                System.Diagnostics.Debug.WriteLine("🛑 Retention set to Forever. Cleanup skipped.");
+                return;
+            }
+
+            DateTime cutoffDate = DateTime.Now.AddDays(-retentionDays);
+
+            using (var conn = new SQLiteConnection(ConnString))
+            {
+                await conn.OpenAsync();
+                using (var cmd = conn.CreateCommand())
+                {
+                    cmd.CommandText = @"
+                DELETE FROM AppUsage
+                WHERE strftime('%s', EndTime) < strftime('%s', @cutoffDate);
+            ";
+
+                    cmd.Parameters.AddWithValue("@cutoffDate", cutoffDate.ToString("yyyy-MM-dd HH:mm:ss"));
+                    int rowsDeleted = await cmd.ExecuteNonQueryAsync();
+
+                    System.Diagnostics.Debug.WriteLine(rowsDeleted > 0
+                        ? $"🧹 Deleted {rowsDeleted} history records older than {retentionDays} days (older than {cutoffDate:yyyy-MM-dd HH:mm:ss})."
+                        : "🧹 No old history data found to delete.");
+                }
+            }
+        }
+
+
 
 
 

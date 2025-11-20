@@ -208,6 +208,8 @@ namespace FocusTrack.Pages
                     ? "Entire Screen"
                     : "Active Apps Only";
 
+                HistoryRetentionPeriod.Text = UserSettings.HistoryRetentionPeriod ?? "Forever";
+
             }
         }
 

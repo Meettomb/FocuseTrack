@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Configuration;
 using System.Data;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
@@ -13,18 +14,43 @@ namespace FocusTrack
     /// </summary>
     public partial class App : Application
     {
-        protected override void OnStartup(StartupEventArgs e)
+        protected override async void OnStartup(StartupEventArgs e)
         {
             base.OnStartup(e);
-            //ActiveWindowTracker.InitializePowerEventHandlers();
+
             // Ensure DB + table exist before UI
-            FocusTrack.Database.Initialize();
+            Database.Initialize();
+
             // Start hourly background cleanup
             Database.StartAutoCleanupLoop();
 
+            // Load UI
             var mainWindow = new MainWindow();
             mainWindow.Show();
+
+            try
+            {
+                var settings = (await Database.GetUserSettings()).FirstOrDefault();
+                if (settings != null)
+                {
+                    // Check if cleanup is needed
+                    if (!DateTime.TryParse(settings.LastCleanupDate, out DateTime lastCleanup) ||
+                        lastCleanup.Date < DateTime.Now.Date) // Only run if a NEW day
+                    {
+                        await Database.CleanHistoryAccordingToRetentionOncePerDay();
+                    }
+                    else
+                    {
+                        Debug.WriteLine($"🛑 Cleanup skipped. Already executed today at {lastCleanup:yyyy-MM-dd}.");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine("⚠ Error during cleanup call from App.xaml.cs → " + ex.Message);
+            }
         }
+
 
         protected override void OnExit(ExitEventArgs e)
         {
