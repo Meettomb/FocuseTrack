@@ -432,6 +432,19 @@ namespace FocusTrack
             {
                 settingsPage.TimePopup.IsOpen = false;
             }
+
+            // Close any open popup in Settings page
+            if (MainFrame.Content is FocusTrack.Pages.Settings settingsPagePopup)
+            {
+                if (settingsPagePopup.TimePopup.IsOpen)
+                    settingsPagePopup.TimePopup.IsOpen = false;
+
+                if (settingsPagePopup.ActivityTrackingScopePopup.IsOpen)
+                    settingsPagePopup.ActivityTrackingScopePopup.IsOpen = false;
+
+                if (settingsPagePopup.HistoryRetentionPeriodPopup.IsOpen)
+                    settingsPagePopup.HistoryRetentionPeriodPopup.IsOpen = false;
+            }
         }
         private void MainFrame_Navigated(object sender, NavigationEventArgs e)
         {
@@ -450,9 +463,15 @@ namespace FocusTrack
                 if (MainFrame.Content is FocusTrack.Pages.AppOpenCountPage openPage)
                     openPage.AppOpenCountGrid.Margin = new Thickness(10, 0, 10, 55);
 
+                if (MainFrame.Content is FocusTrack.Pages.Settings settingPage)
+                    settingPage.SettingsGrid.Margin = new Thickness(20, 20, 20, 20);
+
+
                 SettinButton.Margin = new Thickness(5, 0, 0, 50);
                 H_A_Button.Margin = new Thickness(5, 0, 0, 50);
                 AppNameTitle.Margin = new Thickness(15, 0, 0, 0);
+
+
             }
             else
             {
@@ -464,6 +483,9 @@ namespace FocusTrack
 
                 if (MainFrame.Content is FocusTrack.Pages.AppOpenCountPage openPage)
                     openPage.AppOpenCountGrid.Margin = new Thickness(0);
+
+                if (MainFrame.Content is FocusTrack.Pages.Settings settingPage)
+                    settingPage.SettingsGrid.Margin = new Thickness(20, 20, 20, 15);
 
                 SettinButton.Margin = new Thickness(0);
                 H_A_Button.Margin = new Thickness(0);

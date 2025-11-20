@@ -99,6 +99,9 @@ namespace FocusTrack.Pages
 
                 if (ActivityTrackingScopePopup.IsOpen)
                     ActivityTrackingScopePopup.IsOpen = false;
+
+                if (HistoryRetentionPeriodPopup.IsOpen)
+                    HistoryRetentionPeriodPopup.IsOpen = false;
             };
             // Detect click outside popup
             this.PreviewMouseDown += (s, e) =>
@@ -113,6 +116,11 @@ namespace FocusTrack.Pages
                 {
                     if (!ActivityTrackingScopePopup.IsMouseOver && !ActivityTrackingScopePopup.IsMouseOver)
                         ActivityTrackingScopePopup.IsOpen = false;
+                }
+                if (HistoryRetentionPeriodPopup.IsOpen)
+                {
+                    if (!HistoryRetentionPeriodPopup.IsMouseOver && !HistoryRetentionPeriodPopup.IsMouseOver)
+                        HistoryRetentionPeriodPopup.IsOpen = false;
                 }
             };
 
@@ -423,6 +431,58 @@ namespace FocusTrack.Pages
             ActivityTrackingScopePopup.IsOpen = false;
         }
 
+
+        // For History Retention Setting
+        private void HistoryRetentionPeriod_Click(object sender, MouseButtonEventArgs e)
+        {
+            HistoryRetentionPeriodPopup.IsOpen = !HistoryRetentionPeriodPopup.IsOpen;
+        }
+        private async void HistoryRetentionPeriodPopup_Closed(object sender, EventArgs e)
+        {
+            var selectedRetentionObj = HistoryRetentionPeriodListBox.SelectedItem;
+            if (selectedRetentionObj == null)
+            {
+                System.Diagnostics.Debug.WriteLine("No history retention period selected.");
+                return;
+            }
+
+            // Normalize to a string whether SelectedItem is a ListBoxItem or a plain string
+            string selectedText = null;
+            if (selectedRetentionObj is ListBoxItem lbi)
+                selectedText = lbi.Content?.ToString();
+            else
+                selectedText = selectedRetentionObj.ToString();
+
+            if (string.IsNullOrWhiteSpace(selectedText))
+            {
+                System.Diagnostics.Debug.WriteLine("Selected retention period text is empty.");
+                return;
+            }
+
+            // Ensure column exists
+            await Database.EnsureHistoryRetentionPeriodColumns();
+
+            // Store value as string (not integer)
+            string retentionPeriod = selectedText; // e.g. "3 Months", "1 Year", "Forever"
+            System.Diagnostics.Debug.WriteLine($"Selected Retention Period: {retentionPeriod}");
+
+            // Persist to DB
+            int updateResult = await Database.UpdateHistoryRetentionPeriod(retentionPeriod);
+
+            // Update in-memory user settings
+            UserSettings.HistoryRetentionPeriod = retentionPeriod;
+
+            // Instantly update UI label
+            HistoryRetentionPeriod.Text = retentionPeriod;
+        }
+
+        private void HistoryRetentionPeriodListBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (HistoryRetentionPeriodListBox.SelectedItem == null)
+                return;
+            // Close the popup
+            HistoryRetentionPeriodPopup.IsOpen = false;
+        }
 
 
 

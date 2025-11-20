@@ -315,24 +315,27 @@ namespace FocusTrack
             }
 
 
-            string appName = GetFriendlyAppName(proc, proc.ProcessName);
-            //Debug.WriteLine($"[GetActiveWindowInfo] Final app name: {appName}");
-            if (proc.ProcessName.IndexOf("WhatsApp", StringComparison.OrdinalIgnoreCase) >= 0)
+            string processName = proc.ProcessName;
+            int rootIndex = processName.IndexOf(".root", StringComparison.OrdinalIgnoreCase);
+
+            // Step 1: Remove .root if exists
+            if (rootIndex >= 0)
+            {
+                processName = processName.Substring(0, rootIndex);
+            }
+
+            // Step 2: Get final name
+            string appName = GetFriendlyAppName(proc, processName);
+
+            // Step 3: Special handling for WhatsApp
+            if (processName.IndexOf("WhatsApp", StringComparison.OrdinalIgnoreCase) >= 0)
             {
                 appName = "WhatsApp";
                 appIcon = null;
             }
-            string processName = proc.ProcessName;
-            int rootIndex = processName.IndexOf(".root", StringComparison.OrdinalIgnoreCase);
-
-            if (rootIndex >= 0)
-            {
-                processName = processName.Substring(0, rootIndex); // remove the .Root part
-            }
-
-
 
             return (appName, windowTitle, exePath, appIcon);
+
         }
 
         private static bool IsWindowOnCurrentDesktop(IntPtr hwnd)

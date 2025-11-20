@@ -74,7 +74,8 @@ namespace FocusTrack
                             TrackVPN INTEGER DEFAULT 1,
                             BreakTime TEXT DEFAULT '00:00',
                             NotifyBreakEveryTime INTEGER DEFAULT 0,
-                            ActivityTrackingScope INTEGER DEFAULT 0
+                            ActivityTrackingScope INTEGER DEFAULT 0,
+                            HistoryRetentionPeriod TEXT DEFAULT 'Forever'
                         );";
                         // 0 = Active Apps Only AND 1 = Entire Screen, In ActivityTrackingScope
                         cmd.ExecuteNonQuery();
@@ -83,8 +84,8 @@ namespace FocusTrack
 
                         // Ensure at least one row exists
                         cmd.CommandText = @"
-                        INSERT INTO UserSettings (TrackPrivateMode, TrackVPN, BreakTime, NotifyBreakEveryTime, ActivityTrackingScope)
-                        SELECT 1, 1, '00:00', 0, 0
+                        INSERT INTO UserSettings (TrackPrivateMode, TrackVPN, BreakTime, NotifyBreakEveryTime, ActivityTrackingScope, HistoryRetentionPeriod)
+                        SELECT 1, 1, '00:00', 0, 0, 'Forever'
                         WHERE NOT EXISTS (SELECT 1 FROM UserSettings);
                     ";
                         cmd.ExecuteNonQuery();
@@ -1082,13 +1083,6 @@ namespace FocusTrack
                         System.Diagnostics.Debug.WriteLine("ActivityTrackingScope column already exists.");
                     }
 
-                    // Ensure existing rows are initialized to 0
-                    using (var cmd = conn.CreateCommand())
-                    {
-                        cmd.CommandText = "UPDATE UserSettings SET NotifyBreakEveryTime = 0 WHERE NotifyBreakEveryTime IS NULL;";
-                        await cmd.ExecuteNonQueryAsync();
-                    }
-
                 }
             }
             catch (Exception ex)
@@ -1112,6 +1106,69 @@ namespace FocusTrack
             return value;
 
 
+        }
+
+        public static async Task EnsureHistoryRetentionPeriodColumns()
+        {
+            try
+            {
+                using (var conn = new SQLiteConnection(Database.ConnString))
+                {
+                    await conn.OpenAsync();
+                    bool columnExists = false;
+
+                    using (var cmd = conn.CreateCommand())
+                    {
+                        cmd.CommandText = "PRAGMA table_info(UserSettings);";
+                        using (var reader = await cmd.ExecuteReaderAsync())
+                        {
+                            while (await reader.ReadAsync())
+                            {
+                                if (string.Equals(reader["name"].ToString(), "HistoryRetentionPeriod", StringComparison.OrdinalIgnoreCase))
+                                {
+                                    columnExists = true;
+                                    break;
+                                }
+                            }
+                        }
+                    }
+
+                    if (!columnExists)
+                    {
+                        using (var cmd = conn.CreateCommand())
+                        {
+                            cmd.CommandText = @"ALTER TABLE UserSettings ADD COLUMN HistoryRetentionPeriod TEXT DEFAULT 'Forever';";
+                            await cmd.ExecuteNonQueryAsync();
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Failed to ensure HistoryRetentionPeriod column: {ex.Message}");
+            }
+        }
+        public static async Task<int> UpdateHistoryRetentionPeriod(string period)
+        {
+            using (var conn = new SQLiteConnection(ConnString))
+            {
+                await conn.OpenAsync();
+                using (var cmd = conn.CreateCommand())
+                {
+                    cmd.CommandText = "UPDATE UserSettings SET HistoryRetentionPeriod = @period WHERE Id = 1;";
+                    cmd.Parameters.AddWithValue("@period", period);
+
+                    int rows = await cmd.ExecuteNonQueryAsync();
+
+                    if (rows == 0)
+                    {
+                        cmd.CommandText = "INSERT INTO UserSettings (Id, HistoryRetentionPeriod) VALUES (1, @period);";
+                        rows = await cmd.ExecuteNonQueryAsync();
+                    }
+
+                    return rows;
+                }
+            }
         }
 
 
